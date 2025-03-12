@@ -22,31 +22,18 @@ func NewRandomness() *Randomness {
 	}
 }
 
-func (r *Randomness) Next() float64 {
-	return r.rng.Float64()
+func (r *Randomness) Next(lowBound, highBound float64) float64 {
+	return lowBound + r.float()*(highBound-lowBound)
 }
 
-func (r *Randomness) NextDouble(lowBound, highBound float64) float64 {
-	return lowBound + r.rng.Float64()*(highBound-lowBound)
-}
-
-func (r *Randomness) Binary(probability float64) bool {
-	return r.rng.Float64() < probability
+func (r *Randomness) Id() uint64 {
+	return uint64(r.rng.Int63())
 }
 
 func (r *Randomness) Expovariate(lambda float64) float64 {
-	return -math.Log(1.0-r.rng.Float64()) / lambda
+	return -math.Log(1.0-r.float()) / lambda
 }
 
-func (r *Randomness) NextGaussian() float64 {
-	radiusVariable := r.generateRandomFloat()
-	angleVariable := r.generateRandomFloat()
-
-	// Box-Muller transform
-	return math.Sqrt(-2.0*math.Log(radiusVariable)) * math.Sin(2.0*math.Pi*angleVariable)
-}
-
-func (r *Randomness) generateRandomFloat() float64 {
+func (r *Randomness) float() float64 {
 	return 1.0 - r.rng.Float64()
 }
-
