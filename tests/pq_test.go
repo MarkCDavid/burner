@@ -8,7 +8,7 @@ import (
 )
 
 func TestPriorityQueue(t *testing.T) {
-	pq := &pkgPriorityQueue.PriorityQueue[int]{}
+	pq := &pkgPriorityQueue.PriorityQueue{}
 	heap.Init(pq)
 
 	pq.PushItem(1, 3.0)
@@ -36,7 +36,7 @@ func TestPriorityQueue(t *testing.T) {
 }
 
 func TestPopFromEmptyQueue(t *testing.T) {
-	pq := &pkgPriorityQueue.PriorityQueue[string]{}
+	pq := &pkgPriorityQueue.PriorityQueue{}
 	heap.Init(pq)
 
 	val, priority, ok := pq.PopItem()
@@ -46,7 +46,7 @@ func TestPopFromEmptyQueue(t *testing.T) {
 }
 
 func TestPriorityQueueStrings(t *testing.T) {
-	pq := &pkgPriorityQueue.PriorityQueue[string]{}
+	pq := &pkgPriorityQueue.PriorityQueue{}
 	heap.Init(pq)
 
 	pq.PushItem("low", 5.0)
@@ -70,7 +70,7 @@ func TestPriorityQueueStrings(t *testing.T) {
 }
 
 func TestPriorityQueueSwap(t *testing.T) {
-	pq := &pkgPriorityQueue.PriorityQueue[int]{}
+	pq := &pkgPriorityQueue.PriorityQueue{}
 	heap.Init(pq)
 
 	pq.PushItem(1, 3.0)

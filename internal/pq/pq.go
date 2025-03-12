@@ -4,35 +4,35 @@ import (
 	"container/heap"
 )
 
-type PriorityQueueElement[T any] struct {
-	value    T
+type PriorityQueueElement struct {
+	value    any
 	index    int
 	priority float64
 }
 
-type PriorityQueue[T any] []*PriorityQueueElement[T]
+type PriorityQueue []*PriorityQueueElement
 
-func (pq PriorityQueue[T]) Len() int { 
+func (pq PriorityQueue) Len() int { 
   return len(pq) 
 }
 
-func (pq PriorityQueue[T]) Less(i, j int) bool {
+func (pq PriorityQueue) Less(i, j int) bool {
 	return pq[i].priority < pq[j].priority
 }
 
-func (pq PriorityQueue[T]) Swap(i, j int) {
+func (pq PriorityQueue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
 	pq[i].index = i
 	pq[j].index = j
 }
 
-func (pq *PriorityQueue[T]) Push(x any) {
-	item := x.(*PriorityQueueElement[T])
+func (pq *PriorityQueue) Push(x any) {
+	item := x.(*PriorityQueueElement)
 	item.index = len(*pq)
 	*pq = append(*pq, item)
 }
 
-func (pq *PriorityQueue[T]) Pop() any {
+func (pq *PriorityQueue) Pop() any {
 	old := *pq
 	n := len(old)
 	item := old[n-1]
@@ -41,16 +41,16 @@ func (pq *PriorityQueue[T]) Pop() any {
 	return item
 }
 
-func (pq *PriorityQueue[T]) PushItem(value T, priority float64) {
-	item := &PriorityQueueElement[T]{value: value, priority: priority}
+func (pq *PriorityQueue) PushItem(value any, priority float64) {
+	item := &PriorityQueueElement{value: value, priority: priority}
 	heap.Push(pq, item)
 }
 
-func (pq *PriorityQueue[T]) PopItem() (T, float64, bool) {
+func (pq *PriorityQueue) PopItem() (any, float64, bool) {
 	if pq.Len() == 0 {
-		var zero T
+		var zero any
 		return zero, 0, false
 	}
-	item := heap.Pop(pq).(*PriorityQueueElement[T])
+	item := heap.Pop(pq).(*PriorityQueueElement)
 	return item.value, item.priority, true
 }
