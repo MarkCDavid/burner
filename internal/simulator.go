@@ -25,7 +25,12 @@ var Queue EventQueue = CreateEventQueue()
 var Random *Rng = CreateRandom(nil)
 var SimulationTime = 0.0
 
-func Simulate(configuration_path string) {
+func Simulate(configuration_path string) error {
+	configuration, err := LoadConfiguration(configuration_path)
+	if err != nil {
+		return err
+	}
+
 	for nodeId := 0; nodeId < NODE_COUNT; nodeId += 1 {
 		scheduleBlockMinedEvent(&Nodes[nodeId], Blocks[0])
 	}
