@@ -15,17 +15,16 @@ type Configuration struct {
 }
 
 func LoadConfiguration(configuarionPath string) (Configuration, error) {
-
 	bytes, err := os.ReadFile(configuarionPath)
 
-	if err == nil {
+	if err != nil {
 		return Configuration{}, err
 	}
 
 	var configuration Configuration
 	err = yaml.Unmarshal(bytes, &configuration)
 
-	if err == nil {
+	if err != nil {
 		return Configuration{}, err
 	}
 

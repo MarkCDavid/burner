@@ -4,6 +4,9 @@ test:
 run:
   go run ./cmd/burner
 
+run-seeded SEED:
+  go run ./cmd/burner --seed={{ SEED }}
+
 push MESSAGE:
   git add -i
   git commit -m "{{ MESSAGE }}"
