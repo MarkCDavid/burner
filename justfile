@@ -8,8 +8,8 @@ run-seeded SEED:
   go run ./cmd/burner --seed={{ SEED }}
 
 push MESSAGE:
-  git add -i
-  git commit -m "{{ MESSAGE }}"
+  git add .
+  git commit --allow-empty -m "{{ MESSAGE }}"
   git push origin main
 
 chain:
