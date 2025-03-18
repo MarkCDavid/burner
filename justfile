@@ -14,5 +14,10 @@ push MESSAGE:
 
 chain:
   just run
-  dot -Tpng chain.dot -o chain.png
-  feh chain.png
+  dot -Tsvg chain.dot -o chain.svg
+  open chain.svg
+
+chain-seeded SEED:
+  just run-seeded {{ SEED }}
+  dot -Tsvg chain.dot -o chain.svg
+  open chain.svg

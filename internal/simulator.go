@@ -8,8 +8,8 @@ import (
 type Simulation struct {
 	Configuration Configuration
 	Nodes         []Node
-	Blocks        []*Block
-	Blockchain    []*Block
+	Blocks        []Block
+	Blockchain    []int
 	Queue         EventQueue
 	Random        *Rng
 	CurrentTime   float64
@@ -23,24 +23,24 @@ func Simulate(configuration_path string, seed *int64) error {
 		return err
 	}
 
-	genesisBlock := &Block{
-		Node:          nil,
-		PreviousBlock: nil,
-		Depth:         0,
-	}
-
 	simulation = Simulation{
 		Configuration: configuration,
 		Nodes:         make([]Node, configuration.NodeCount),
-		Blocks:        []*Block{genesisBlock},
-		Blockchain:    []*Block{genesisBlock},
-		Queue:         CreateEventQueue(),
-		Random:        CreateRandom(seed),
-		CurrentTime:   0,
+		Blocks: []Block{
+			{
+				Node:          -1,
+				PreviousBlock: -1,
+				Depth:         0,
+			},
+		},
+		Blockchain:  []int{0},
+		Queue:       CreateEventQueue(),
+		Random:      CreateRandom(seed),
+		CurrentTime: 0,
 	}
 
 	for nodeId := 0; nodeId < configuration.NodeCount; nodeId += 1 {
-		scheduleBlockMinedEvent(&simulation.Nodes[nodeId], simulation.Blockchain[0])
+		scheduleBlockMinedEvent(nodeId, 0)
 	}
 
 	processedEvents := 0
@@ -72,66 +72,73 @@ func Simulate(configuration_path string, seed *int64) error {
 	return nil
 }
 
-func scheduleBlockMinedEvent(minedBy *Node, previousBlock *Block) {
-	minedAt := simulation.CurrentTime + simulation.Random.Expovariate(1.0/float64(simulation.Configuration.AverageBlockFrequencyInSeconds))
-	block := &Block{
+func scheduleBlockMinedEvent(minedBy int, previousBlock int) {
+	minedAt := simulation.CurrentTime + simulation.Random.Expovariate(1.0/float64(simulation.Configuration.AverageBlockFrequencyInSeconds*simulation.Configuration.NodeCount))
+	block := Block{
 		Node:          minedBy,
 		PreviousBlock: previousBlock,
 		MinedAt:       minedAt,
-		Depth:         previousBlock.Depth + 1,
+		Depth:         simulation.Blocks[previousBlock].Depth + 1,
 	}
 
 	simulation.Blocks = append(simulation.Blocks, block)
-
-	minedBy.CurrentlyMinedBlock = block
+	currentBlock := len(simulation.Blocks) - 1
+	simulation.Nodes[minedBy].CurrentlyMinedBlock = currentBlock
 
 	simulation.Queue.Push(&Event{
 		Type:       BlockMinedEvent,
 		Node:       minedBy,
-		Block:      block,
+		Block:      currentBlock,
 		DispatchAt: minedAt,
 	})
 }
 
-func scheduleBlockReceivedEvent(receivedBy *Node, minedBlock *Block) {
+func scheduleBlockReceivedEvent(receivedBy int, minedBlock int) {
+	offset := 0.0
+	if simulation.Configuration.AverageNetworkLatencyInSeconds > 0 {
+		offset = simulation.Random.Expovariate(1.0 / float64(simulation.Configuration.AverageNetworkLatencyInSeconds))
+	}
 	simulation.Queue.Push(&Event{
+
 		Type:       BlockReceivedEvent,
 		Node:       receivedBy,
 		Block:      minedBlock,
-		DispatchAt: simulation.CurrentTime + simulation.Random.Expovariate(1.0/float64(simulation.Configuration.AverageNetworkLatencyInSeconds*simulation.Configuration.NodeCount)),
+		DispatchAt: simulation.CurrentTime + offset,
 	})
 }
 
 func handleBlockMinedEvent(event *Event) {
-	if event.Node.CurrentlyMinedBlock != event.Block {
+	if simulation.Nodes[event.Node].CurrentlyMinedBlock != event.Block {
 		return
 	}
 
 	simulation.Blockchain = append(simulation.Blockchain, event.Block)
 
-	for nodeId := 0; nodeId < simulation.Configuration.NodeCount; nodeId += 1 {
-		node := &simulation.Nodes[nodeId]
-		if node == event.Node {
-			scheduleBlockMinedEvent(node, event.Block)
+	for currentNode := 0; currentNode < simulation.Configuration.NodeCount; currentNode += 1 {
+		if currentNode == event.Node {
+			scheduleBlockMinedEvent(currentNode, event.Block)
 		} else {
-			scheduleBlockReceivedEvent(node, event.Block)
+			scheduleBlockReceivedEvent(currentNode, event.Block)
 		}
 	}
 }
 
 func handleBlockReceivedEvent(event *Event) {
-	if event.Node.CurrentlyMinedBlock.PreviousBlock == event.Block.PreviousBlock {
+	eventBlock := simulation.Blocks[event.Block]
+	currentlyMinedBlock := simulation.Blocks[simulation.Nodes[event.Node].CurrentlyMinedBlock]
+
+	if currentlyMinedBlock.PreviousBlock == eventBlock.PreviousBlock {
 		scheduleBlockMinedEvent(event.Node, event.Block)
 		return
 	}
 
-	if event.Node.CurrentlyMinedBlock.Depth+simulation.Configuration.ChainReogranizationThreshold <= event.Block.Depth {
+	if currentlyMinedBlock.Depth+simulation.Configuration.ChainReogranizationThreshold <= eventBlock.Depth {
 		scheduleBlockMinedEvent(event.Node, event.Block)
 		return
 	}
 }
 
-func ExportBlocksToDot(blocks []*Block, filename string) error {
+func ExportBlocksToDot(blockchain []int, filename string) error {
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -142,18 +149,20 @@ func ExportBlocksToDot(blocks []*Block, filename string) error {
 	// fmt.Fprintln(file, "    rankdir=LR;")
 
 	// Add nodes
-	for _, block := range blocks {
-		blockAddr := fmt.Sprintf("block_%p", block)
-		nodeAddr := fmt.Sprintf("%p", block.Node)
+	for _, blockId := range blockchain {
+		block := simulation.Blocks[blockId]
+		blockAddr := fmt.Sprintf("block_%d", blockId)
+		nodeAddr := fmt.Sprintf("%d", block.Node)
 		label := fmt.Sprintf("Mined by: %s\\nMined at: %f\\nDepth: %d", nodeAddr, block.MinedAt, block.Depth)
 		fmt.Fprintf(file, "    \"%s\" [label=\"%s\"];\n", blockAddr, label)
 	}
 
 	// Add edges
-	for _, block := range blocks {
-		if block.PreviousBlock != nil {
-			currentAddr := fmt.Sprintf("block_%p", block)
-			prevAddr := fmt.Sprintf("block_%p", block.PreviousBlock)
+	for _, blockId := range blockchain {
+		block := simulation.Blocks[blockId]
+		if block.PreviousBlock != -1 {
+			currentAddr := fmt.Sprintf("block_%d", blockId)
+			prevAddr := fmt.Sprintf("block_%d", block.PreviousBlock)
 			fmt.Fprintf(file, "    \"%s\" -> \"%s\";\n", prevAddr, currentAddr)
 		}
 	}

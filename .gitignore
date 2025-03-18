@@ -11,3 +11,6 @@ go.sum
 # Test cache
 testdata/
 
+chain.dot
+chain.svg
+
