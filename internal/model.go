@@ -1,14 +1,14 @@
 package internal
 
 type Block struct {
-	Node          *Node
-	PreviousBlock *Block
+	Node          int
+	PreviousBlock int
 	MinedAt       float64
 	Depth         int
 }
 
 type Node struct {
-	CurrentlyMinedBlock *Block
+	CurrentlyMinedBlock int
 }
 
 type EventType int
@@ -21,8 +21,8 @@ const (
 type Event struct {
 	Type EventType
 
-	Block *Block
-	Node  *Node
+	Block int
+	Node  int
 
 	DispatchAt float64
 
