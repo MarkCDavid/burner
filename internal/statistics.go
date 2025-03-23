@@ -11,37 +11,53 @@ func CalculateStatistics(blocks []Block) {
 }
 
 func calculateMainChainAverageBlockMiningSpeed(blocks []Block) {
-	totalBlocksMined := 0.0
+	totalBlocksMined := 0
 	totalBlockMiningTime := 0.0
 
-	index := getLongestChainTip(blocks)
+	index := -1
+	for i := len(blocks) - 1; i >= 0; i-- {
+		if blocks[i].Mined {
+			index = i
+			break
+		}
+
+	}
+
+	// index := getLongestChainTip(blocks)
 
 	for index != -1 {
+		if blocks[index].PreviousBlock == -1 {
+			break
+		}
 		if blocks[index].FinishedAt <= 0 {
 			index = blocks[index].PreviousBlock
 			continue
 		}
 		totalBlocksMined += 1
-		totalBlockMiningTime += (blocks[index].FinishedAt - blocks[index].StartedAt)
+		totalBlockMiningTime += (blocks[index].FinishedAt - blocks[blocks[index].PreviousBlock].StartedAt)
 		index = blocks[index].PreviousBlock
 	}
 
-	fmt.Printf("Average main chain block mining speed: %f\n", totalBlockMiningTime/totalBlocksMined)
+	fmt.Printf("Total main chain blocks mined: %d\n", totalBlocksMined)
+	fmt.Printf("Average main chain block mining speed: %f\n", totalBlockMiningTime/float64(totalBlocksMined))
 }
 
 func calculateAverageBlockMiningSpeed(blocks []Block) {
-	totalBlocksMined := 0.0
+	totalBlocksMined := 0
 	totalBlockMiningTime := 0.0
 
-	for _, block := range blocks {
-		if !block.Mined {
+	for i := 0; i < len(blocks); i++ {
+
+		if !blocks[i].Mined {
 			continue
 		}
+
 		totalBlocksMined += 1
-		totalBlockMiningTime += (block.FinishedAt - block.StartedAt)
+		totalBlockMiningTime += (blocks[i].FinishedAt - blocks[blocks[i].PreviousBlock].FinishedAt)
 	}
 
-	fmt.Printf("Average block mining speed: %f\n", totalBlockMiningTime/totalBlocksMined)
+	fmt.Printf("Total blocks mined: %d\n", totalBlocksMined)
+	fmt.Printf("Average block mining speed: %f\n", totalBlockMiningTime/float64(totalBlocksMined))
 }
 
 func calculateAverageBlockWorkingTime(blocks []Block) {

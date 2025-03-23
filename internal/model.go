@@ -10,13 +10,14 @@ const (
 )
 
 type Block struct {
-	Node          int
-	BlockType     BlockType
-	PreviousBlock int
-	Depth         int
-	StartedAt     float64
-	FinishedAt    float64
-	Mined         bool
+	Node                  int
+	BlockType             BlockType
+	PreviousBlock         int
+	Depth                 int
+	StartedAt             float64
+	FinishedAt            float64
+	ProofOfBurnDifficulty float64
+	Mined                 bool
 }
 
 var _block Block
@@ -25,6 +26,7 @@ const BlockSize = int(unsafe.Sizeof(_block))
 
 type Node struct {
 	CurrentlyMinedBlock int
+	NodePower           float64
 }
 
 type EventType int

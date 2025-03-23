@@ -8,7 +8,7 @@ func HandleBlockMinedEvent(event *Event) {
 	simulation.Blocks[event.Block].FinishedAt = event.DispatchAt
 	simulation.Blocks[event.Block].Mined = true
 
-	for currentNode := 0; currentNode < simulation.Configuration.NodeCount; currentNode += 1 {
+	for currentNode := 0; currentNode < len(simulation.Nodes); currentNode += 1 {
 		if currentNode == event.Node {
 			ScheduleBlockMinedEvent(currentNode, event.Block)
 		} else {
