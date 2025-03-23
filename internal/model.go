@@ -1,11 +1,27 @@
 package internal
 
+import unsafe "unsafe"
+
+type BlockType int
+
+const (
+	ProofOfWork BlockType = 0
+	ProofOfBurn BlockType = 1
+)
+
 type Block struct {
 	Node          int
+	BlockType     BlockType
 	PreviousBlock int
-	MinedAt       float64
 	Depth         int
+	StartedAt     float64
+	FinishedAt    float64
+	Mined         bool
 }
+
+var _block Block
+
+const BlockSize = int(unsafe.Sizeof(_block))
 
 type Node struct {
 	CurrentlyMinedBlock int
@@ -28,3 +44,7 @@ type Event struct {
 
 	Index int
 }
+
+var _event Event
+
+const EventSize = int(unsafe.Sizeof(_event))

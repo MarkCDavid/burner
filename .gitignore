@@ -14,3 +14,4 @@ testdata/
 chain.dot
 chain.svg
 
+.direnv
