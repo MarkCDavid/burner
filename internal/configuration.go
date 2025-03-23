@@ -12,6 +12,8 @@ type Configuration struct {
 	AverageNetworkLatencyInSeconds int     `yaml:"average_network_latency_in_seconds"`
 	AverageBlockFrequencyInSeconds int     `yaml:"average_block_frequency_in_seconds"`
 	ChainReogranizationThreshold   int     `yaml:"chain_reorganization_threshold"`
+
+	ProofOfBurnEveryNthBlock int `yaml:"proof_of_burn_every_nth_block"`
 }
 
 func LoadConfiguration(configuarionPath string) (Configuration, error) {
