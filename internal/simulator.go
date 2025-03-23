@@ -19,18 +19,27 @@ func Simulate(configuration_path string, seed *int64) error {
 		return err
 	}
 
+	random := CreateRandom(seed)
+	nodes := make([]Node, configuration.NodeCount)
+	difficulty := 0.0
+	for i := 0; i < len(nodes); i++ {
+		nodes[i].NodePower = 50 + 50*random.float()
+		difficulty += nodes[i].NodePower
+	}
+
 	simulation = Simulation{
 		Configuration: configuration,
-		Nodes:         make([]Node, configuration.NodeCount),
+		Nodes:         nodes,
 		Blocks: []Block{
 			{
-				Node:          -1,
-				PreviousBlock: -1,
-				Depth:         0,
+				Node:                  -1,
+				PreviousBlock:         -1,
+				Depth:                 0,
+				ProofOfBurnDifficulty: difficulty,
 			},
 		},
 		Queue:       CreateEventQueue(),
-		Random:      CreateRandom(seed),
+		Random:      random,
 		CurrentTime: 0,
 	}
 
@@ -74,6 +83,21 @@ func Simulate(configuration_path string, seed *int64) error {
 			panic("Unknown event")
 		}
 
+		if processedEvents%10000 == 0 && len(simulation.Nodes) < 20 {
+			fmt.Printf("adding new node\n")
+			simulation.Nodes = append(simulation.Nodes, Node{
+				NodePower: 50 + 50*random.float(),
+			})
+
+			for i := len(simulation.Blocks) - 1; i >= 0; i-- {
+				if simulation.Blocks[i].Mined {
+					ScheduleBlockMinedEvent(len(nodes)-1, i)
+					break
+				}
+			}
+
+		}
+
 		if simulation.CurrentTime > simulation.Configuration.SimulationTime {
 			break
 		}
@@ -88,8 +112,8 @@ func Simulate(configuration_path string, seed *int64) error {
 	// fmt.Println()
 	// fmt.Println()
 
-	// CalculateStatistics(simulation.Blocks)
-	ExportBlocksToDotGraph(simulation.Blocks, true, "chain.dot")
+	CalculateStatistics(simulation.Blocks)
+	ExportBlocksToDotGraph(simulation.Blocks, false, "chain.dot")
 
 	return nil
 }

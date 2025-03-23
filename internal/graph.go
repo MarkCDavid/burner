@@ -47,7 +47,11 @@ func addNode(file *os.File, blockId int) {
 			panic("unknown block type")
 		}
 	}
-	miningTime := simulation.Blocks[blockId].FinishedAt - simulation.Blocks[blockId].StartedAt
+	miningTime := 0.0
+	if simulation.Blocks[blockId].FinishedAt > 0 {
+		miningTime = (simulation.Blocks[blockId].FinishedAt - simulation.Blocks[blockId].StartedAt)
+
+	}
 	fmt.Fprintf(
 		file,
 		"    \"%d\" [label=\"block: %d\nmined by: %d\nmined for: %f\" style=\"filled\" fillcolor=\"%s\" constraint=\"false\"];\n",
