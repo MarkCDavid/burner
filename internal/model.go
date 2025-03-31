@@ -29,6 +29,11 @@ type Node struct {
 	NodePower           float64
 }
 
+type PoBNode struct {
+	CurrentlyMinedBlock int
+	Burners             [10]float64
+}
+
 type EventType int
 
 const (

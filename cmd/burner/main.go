@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"path/filepath"
+	// "path/filepath"
 
 	"github.com/MarkCDavid/burner/internal"
 )
@@ -14,7 +14,7 @@ const (
 )
 
 func main() {
-	configuration_path := flag.String(FLAG_CONFIGURATION_PATH, "./configuration/default.yaml", "Path to the yaml configuration for the simulator")
+	// configuration_path := flag.String(FLAG_CONFIGURATION_PATH, "./configuration/default.yaml", "Path to the yaml configuration for the simulator")
 	seed := flag.Int64(FLAG_SEED, 0, "Seed for the simulation")
 	runs := flag.Int64(FLAG_RUNS, 1, "Run count")
 	flag.Parse()
@@ -23,13 +23,14 @@ func main() {
 		seed = nil
 	}
 
-	absolute_configuration_path, err := filepath.Abs(*configuration_path)
-	if err != nil {
-		panic(1)
-	}
+	// absolute_configuration_path, err := filepath.Abs(*configuration_path)
+	// if err != nil {
+	// 	panic(1)
+	// }
 
 	for i := int64(0); i < *runs; i++ {
-		internal.Simulate(absolute_configuration_path, seed)
+		// internal.Simulate(absolute_configuration_path, seed)
+		internal.PoB(seed)
 	}
 }
 

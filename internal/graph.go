@@ -37,8 +37,8 @@ func ExportBlocksToDotGraph(blocks []Block, onlyMined bool, filename string) err
 
 func addNode(file *os.File, blockId int) {
 	color := "white"
-	if blockId == 0 || simulation.Blocks[blockId].Mined {
-		switch simulation.Blocks[blockId].BlockType {
+	if blockId == 0 || pobSimulation.Blocks[blockId].Mined {
+		switch pobSimulation.Blocks[blockId].BlockType {
 		case ProofOfBurn:
 			color = "red"
 		case ProofOfWork:
@@ -48,30 +48,31 @@ func addNode(file *os.File, blockId int) {
 		}
 	}
 	miningTime := 0.0
-	if simulation.Blocks[blockId].FinishedAt > 0 {
-		miningTime = (simulation.Blocks[blockId].FinishedAt - simulation.Blocks[blockId].StartedAt)
+	if pobSimulation.Blocks[blockId].FinishedAt > 0 {
+		miningTime = (pobSimulation.Blocks[blockId].FinishedAt - pobSimulation.Blocks[blockId].StartedAt)
 
 	}
 	fmt.Fprintf(
 		file,
-		"    \"%d\" [label=\"block: %d\nmined by: %d\nmined for: %f\" style=\"filled\" fillcolor=\"%s\" constraint=\"false\"];\n",
+		"    \"%d\" [label=\"block: %d\nmined by: %d\nmined for: %f\ndiff: %f\" style=\"filled\" fillcolor=\"%s\" constraint=\"false\"];\n",
 		blockId,
 		blockId,
-		simulation.Blocks[blockId].Node,
+		pobSimulation.Blocks[blockId].Node,
 		miningTime,
+		pobSimulation.Blocks[blockId].ProofOfBurnDifficulty,
 		color,
 	)
 }
 
 func addEdge(file *os.File, blockId int) {
-	if simulation.Blocks[blockId].PreviousBlock == -1 {
+	if pobSimulation.Blocks[blockId].PreviousBlock == -1 {
 		return
 	}
 
 	fmt.Fprintf(
 		file,
 		"    \"%d\" -> \"%d\";\n",
-		simulation.Blocks[blockId].PreviousBlock,
+		pobSimulation.Blocks[blockId].PreviousBlock,
 		blockId,
 	)
 }

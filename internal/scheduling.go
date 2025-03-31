@@ -1,6 +1,8 @@
 package internal
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func GetNextMiningTime(nodeIndex int, previousBlock int) float64 {
 	difficulty := simulation.Blocks[previousBlock].ProofOfBurnDifficulty
@@ -8,15 +10,36 @@ func GetNextMiningTime(nodeIndex int, previousBlock int) float64 {
 	return simulation.CurrentTime + simulation.Random.Expovariate((simulation.Nodes[nodeIndex].NodePower)/distributedFrequency)
 }
 
+func GetNextMiningTimePoB(nodeIndex int, previousBlock int) float64 {
+	// TODO: Need to model when the "virtual pc" cannot mine any longer.
+	difficulty := pobSimulation.Blocks[previousBlock].ProofOfBurnDifficulty
+	distributedFrequency := float64(600) * float64(difficulty)
+	return pobSimulation.CurrentTime + pobSimulation.Random.Expovariate(100/distributedFrequency)
+}
+func GetNextReceivedTimePoB() float64 {
+	offset := pobSimulation.Random.Expovariate(1.0 / float64(6))
+	return pobSimulation.CurrentTime + offset
+}
+
 func GetNextReceivedTime() float64 {
 	if simulation.Configuration.AverageNetworkLatencyInSeconds <= 0 {
 		return simulation.CurrentTime
 	}
 
-	return simulation.CurrentTime + simulation.Random.Expovariate(1.0/float64(simulation.Configuration.AverageNetworkLatencyInSeconds))
+	offset := simulation.Random.Expovariate(1.0 / float64(simulation.Configuration.AverageNetworkLatencyInSeconds))
+
+	if offset >= 2*simulation.Configuration.SimulationTime {
+		offset = 2 * simulation.Configuration.SimulationTime
+	}
+
+	if offset <= 0.5*simulation.Configuration.SimulationTime {
+		offset = 0.5 * simulation.Configuration.SimulationTime
+	}
+
+	return simulation.CurrentTime + offset
 }
 
-func GetNextBlockType() BlockType {
+func GetNextBlockType(minedBy int) BlockType {
 	return ProofOfWork
 	// if simulation.Configuration.ProofOfBurnEveryNthBlock <= 0 {
 	// 	return ProofOfBurn
@@ -28,15 +51,59 @@ func GetNextBlockType() BlockType {
 	//
 	// return ProofOfWork
 }
+func ScheduleBlockMinedEventPoB(
+	minedBy int,
+	previousBlock int,
+) {
+	difficulty := pobSimulation.Blocks[previousBlock].ProofOfBurnDifficulty
+	minedAt := GetNextMiningTimePoB(minedBy, previousBlock)
+
+	miningTime := (minedAt - pobSimulation.CurrentTime)
+
+	difficultyMultiplier := 600.0 / miningTime
+	if difficultyMultiplier > 4 {
+		difficultyMultiplier = 4
+	}
+	if difficultyMultiplier < 0.25 {
+		difficultyMultiplier = 0.25
+	}
+
+	block := Block{
+		Node:                  minedBy,
+		BlockType:             ProofOfBurn,
+		PreviousBlock:         previousBlock,
+		StartedAt:             pobSimulation.CurrentTime,
+		FinishedAt:            minedAt,
+		ProofOfBurnDifficulty: difficulty * difficultyMultiplier,
+		Depth:                 pobSimulation.Blocks[previousBlock].Depth + 1,
+	}
+
+	pobSimulation.Blocks = append(pobSimulation.Blocks, block)
+	currentBlock := len(pobSimulation.Blocks) - 1
+	pobSimulation.Nodes[minedBy].CurrentlyMinedBlock = currentBlock
+
+	pobSimulation.Queue.Push(&Event{
+		Type:       BlockMinedEvent,
+		Node:       minedBy,
+		Block:      currentBlock,
+		DispatchAt: minedAt,
+	})
+}
 
 func ScheduleBlockMinedEvent(
 	minedBy int,
 	previousBlock int,
 ) {
-	blockType := GetNextBlockType()
+	blockType := GetNextBlockType(minedBy)
 	minedAt := GetNextReceivedTime()
 	difficulty := simulation.Blocks[previousBlock].ProofOfBurnDifficulty
 	finishedAt := minedAt
+
+	// nextEvent := simulation.Queue.Peek()
+	// if nextEvent.Type == BlockMinedEvent && nextEvent.DispatchAt+2*simulation.Configuration.SimulationTime < minedAt {
+	//
+	// }
+	//
 	switch blockType {
 	case ProofOfBurn:
 		break
@@ -103,5 +170,13 @@ func ScheduleBlockReceivedEvent(receivedBy int, minedBlock int) {
 		Node:       receivedBy,
 		Block:      minedBlock,
 		DispatchAt: GetNextReceivedTime(),
+	})
+}
+func ScheduleBlockReceivedEventPoB(receivedBy int, minedBlock int) {
+	pobSimulation.Queue.Push(&Event{
+		Type:       BlockReceivedEvent,
+		Node:       receivedBy,
+		Block:      minedBlock,
+		DispatchAt: GetNextReceivedTimePoB(),
 	})
 }
