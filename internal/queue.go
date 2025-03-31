@@ -25,6 +25,10 @@ func (queue EventQueue) Pop() *Event {
 	return heap.Pop(queue._queue).(*Event)
 }
 
+func (queue EventQueue) Peek() *Event {
+	return queue._queue.Peek().(*Event)
+}
+
 func (queue EventQueue) Len() int {
 	return queue._queue.Len()
 }
@@ -65,4 +69,8 @@ func (queue *InternalEventQueue) Pop() any {
 	*queue = _queue[:_lastIndex]
 
 	return item
+}
+
+func (queue *InternalEventQueue) Peek() any {
+	return (*queue)[0]
 }

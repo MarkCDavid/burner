@@ -13,7 +13,8 @@ type Configuration struct {
 	AverageBlockFrequencyInSeconds int     `yaml:"average_block_frequency_in_seconds"`
 	ChainReogranizationThreshold   int     `yaml:"chain_reorganization_threshold"`
 
-	ProofOfBurnEveryNthBlock int `yaml:"proof_of_burn_every_nth_block"`
+	ProofOfBurnMaturityIntervalInSeconds int `yaml:"proof_of_burn_maturity_interval_in_seconds"`
+	ProofOfBurnDecayTimeInSeconds        int `yaml:"proof_of_burn_decay_time_in_seconds"`
 }
 
 func LoadConfiguration(configuarionPath string) (Configuration, error) {

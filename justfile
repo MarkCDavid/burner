@@ -15,9 +15,9 @@ push MESSAGE:
 chain:
   just run
   dot -Tsvg chain.dot -o chain.svg
-  firefox chain.svg
+  open chain.svg
 
 chain-seeded SEED:
   just run-seeded {{ SEED }}
   dot -Tsvg chain.dot -o chain.svg
-  firefox chain.svg
+  open chain.svg
