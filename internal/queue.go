@@ -22,6 +22,9 @@ func (queue EventQueue) Push(event *Event) {
 }
 
 func (queue EventQueue) Remove(event *Event) {
+	if event.Index == -1 {
+		return
+	}
 	heap.Remove(queue._queue, event.Index)
 }
 

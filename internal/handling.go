@@ -1,50 +1,43 @@
 package internal
 
 import (
-	"encoding/json"
-
 	"github.com/sirupsen/logrus"
 )
 
-func HandleBlockMinedEvent(event *Event) {
-	if simulation.Nodes[event.Node].CurrentEvent.Block != event.Block {
-		return
-	}
-
-	logrus.Debug("================= Handle Block Mined Event")
-	ScheduleBlockMinedEvent(event.Node, event.Block)
-	for currentNode := 0; currentNode < len(simulation.Nodes); currentNode += 1 {
+func (s *Simulation) HandleBlockMinedEvent(event *Event) {
+	s.ScheduleBlockMinedEvent(event.Node, event.Block, event.Depth+1)
+	for currentNode := 0; currentNode < len(s.Nodes); currentNode += 1 {
 		if currentNode != event.Node {
-
-			logrus.Debugf("====== Scheduling for %d by %d", currentNode, event.Node)
-			ScheduleBlockReceivedEvent(currentNode, event)
+			s.ScheduleBlockReceivedEvent(currentNode, event)
 		}
 	}
 }
 
-func HandleBlockReceivedEvent(event *Event) {
-	miningEvent := simulation.Nodes[event.Node].CurrentEvent
+func (s *Simulation) HandleBlockReceivedEvent(event *Event) {
+	miningEvent := s.Nodes[event.Node].CurrentEvent
 
-	eventJson, _ := json.Marshal(event)
-	miningEventJson, _ := json.Marshal(miningEvent)
-	logrus.Debugf("Received event: %s", string(eventJson))
-	logrus.Debugf("Mining event: %s", string(miningEventJson))
-
-	if event.PreviousBlock == miningEvent.PreviousBlock {
-		logrus.Debug("HandleBlockReceivedEvent: Same Block")
-		logrus.Debug(miningEvent)
-		// Stats will be calculated when scheduling new block.
-		ScheduleBlockMinedEvent(event.Node, event.Block)
+	if miningEvent == nil {
+		s.Nodes[event.Node].Fork = event.Fork
+		s.ScheduleBlockMinedEvent(event.Node, event.Block, event.Depth+1)
 		return
 	}
-	if miningEvent.Depth+simulation.Configuration.ChainReogranizationThreshold <= event.Depth {
-		logrus.Debug("HandleBlockReceivedEvent: Enough Depth")
-		logrus.Debug(miningEvent)
-		// Stats will be calculated when scheduling new block.
-		ScheduleBlockMinedEvent(event.Node, event.Block)
+
+	logrus.Debugf("BLOCK RECEIVED | Block Received Event | %s", event.ToString())
+	logrus.Debugf("BLOCK RECEIVED | Current Mining Event | %s", miningEvent.ToString())
+
+	chainReorganizationThreshold := miningEvent.Depth + s.Configuration.ChainReogranizationThreshold
+	deepEnoughForChainReorganization := chainReorganizationThreshold <= event.Depth
+
+	if deepEnoughForChainReorganization {
+		logrus.Debug("BLOCK RECEIVED | reoganizing")
+
+		s.Forks[s.Nodes[event.Node].Fork].Remove(miningEvent)
+
+		s.Nodes[event.Node].Fork = event.Fork
+		s.ScheduleBlockMinedEvent(event.Node, event.Block, event.Depth+1)
 		return
 	}
-	logrus.Debug("HandleBlockReceivedEvent: Ignoring")
+	logrus.Debug("BLOCK RECEIVED | ignoring")
 }
 
 // func HandleBlockMinedEvent(event *Event) {

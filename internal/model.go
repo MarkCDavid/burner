@@ -1,8 +1,18 @@
 package internal
 
+import "encoding/json"
+
 type Node struct {
 	CurrentEvent *Event
+	Fork         int
 }
+
+type EventType int
+
+const (
+	BlockMinedEvent    EventType = 0
+	BlockReceivedEvent EventType = 1
+)
 
 type Event struct {
 	Node int `json:"node"`
@@ -16,4 +26,12 @@ type Event struct {
 	DispatchAt  float64 `json:"dispatchAt"`
 
 	Index int `json:"index"`
+}
+
+func (e *Event) ToString() string {
+	if e == nil {
+		return "nil"
+	}
+	result, _ := json.Marshal(*e)
+	return string(result)
 }

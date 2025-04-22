@@ -4,120 +4,146 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func GetNextMiningTime() float64 {
-	return simulation.CurrentTime + simulation.Random.Expovariate(simulation.Configuration.InverseAverageBlockFrequency)
+func (s *Simulation) GetNextMiningTime() float64 {
+	return s.CurrentTime + s.Random.Expovariate(s.Configuration.InverseAverageBlockFrequency)
 }
 
-func GetNextReceivedTime() float64 {
-	if simulation.Configuration.AverageNetworkLatencyInSeconds <= 0 {
-		return simulation.CurrentTime
+func (s *Simulation) GetNextReceivedTime() float64 {
+	if s.Configuration.AverageNetworkLatencyInSeconds <= 0 {
+		return s.CurrentTime
 	}
 
-	delta := simulation.Random.Expovariate(simulation.Configuration.InverseAverageNetworkLatency)
-	if delta > simulation.Configuration.UpperBoundNetworkLatency {
-		delta = simulation.Configuration.UpperBoundNetworkLatency
+	delta := s.Random.Expovariate(s.Configuration.InverseAverageNetworkLatency)
+	if delta > s.Configuration.UpperBoundNetworkLatency {
+		delta = s.Configuration.UpperBoundNetworkLatency
 	}
 
-	if delta < simulation.Configuration.LowerBoundNetworkLatency {
-		delta = simulation.Configuration.LowerBoundNetworkLatency
+	if delta < s.Configuration.LowerBoundNetworkLatency {
+		delta = s.Configuration.LowerBoundNetworkLatency
 	}
 
-	return simulation.CurrentTime + delta
+	return s.CurrentTime + delta
 }
 
-func ScheduleBlockMinedEvent(
+func (s *Simulation) ScheduleBlockMinedEvent(
 	minedBy int,
 	previousBlock int,
+	depth int,
 ) {
 
-	logrus.Debugf("============ Schedule Block Mined Event (%d)", minedBy)
-	simulation.BlockCount += 1
-	minedAt := GetNextMiningTime()
+	s.BlockCount += 1
+	logrus.Debugf("SCHEDULING | BlockMinedEvent | Block %d mined by %d", s.BlockCount, minedBy)
+	minedAt := s.GetNextMiningTime()
 
-	nextBlockMinedEvent := simulation.BlockMinedEventQueue.Peek()
-
-	if simulation.BlockMinedEventQueue.Len() == 1 && nextBlockMinedEvent != nil {
-		newBlockLowerBound := minedAt
-		newBlockUpperBound := minedAt + simulation.Configuration.UpperBoundNetworkLatency
-
-		oldBlockLowerBound := nextBlockMinedEvent.DispatchAt
-		oldBlockUpperBound := nextBlockMinedEvent.DispatchAt + simulation.Configuration.UpperBoundNetworkLatency
-
-		// The newly scheduled block here might be:
-		if newBlockUpperBound < oldBlockLowerBound {
-
-			logrus.Infof("Block mined earlier than earlierst receival time of most recent block. Remove old, calculate statistics, schedule new.")
-			// 1. Scheduled before the next block, remove old, stats for old
-			simulation.BlockMinedEventQueue.Remove(nextBlockMinedEvent)
-			// fmt.Println("too early, remove later, just calculate stats")
-			// Calculate stats here?
-			scheduleBlockMinedEvent(minedBy, minedAt, previousBlock)
-		} else if newBlockLowerBound > oldBlockUpperBound {
-			// 2. Scheduled after the next block, don't schedule, just stats
-			logrus.Infof("Block mined later than latest receival time of most recent block. Calculate statistics, skip.")
-			// IMPORTANT: Need to calculate receive delay here - across many nodes it matters.
-		} else {
-
-			logrus.Infof("Blocks mined within block receival interval.")
-			// 3. Scheduled during the next block
-			scheduleBlockMinedEvent(minedBy, minedAt, previousBlock)
-			// panic("wowza, we gon have to figure out forks")
-		}
-	} else {
-
-		logrus.Infof("Regular scheduling")
-		scheduleBlockMinedEvent(minedBy, minedAt, previousBlock)
+	if s.Forks[s.Nodes[minedBy].Fork].Len() == 0 {
+		logrus.Debugf("EMPTY | Fork %d | Adding a new event.", s.Nodes[minedBy].Fork)
+		s.scheduleBlockMinedEvent(minedBy, minedAt, previousBlock, depth)
+		return
 	}
+
+	if len(s.Forks) > 1 {
+		logrus.Debugf("FORKS | Fork %d | Force adding new event.", s.Nodes[minedBy].Fork)
+		s.scheduleBlockMinedEvent(minedBy, minedAt, previousBlock, depth)
+		return
+	}
+
+	nextBlockMinedEvent := s.Forks[s.Nodes[minedBy].Fork].Peek()
+
+	newBlockLowerBound := minedAt
+	newBlockUpperBound := minedAt + s.Configuration.UpperBoundNetworkLatency
+
+	oldBlockLowerBound := nextBlockMinedEvent.DispatchAt
+	oldBlockUpperBound := nextBlockMinedEvent.DispatchAt + s.Configuration.UpperBoundNetworkLatency
+
+	blockMinedEarlier := newBlockUpperBound < oldBlockLowerBound
+	blockMinedLater := newBlockLowerBound > oldBlockUpperBound
+	blocksOverlap := !blockMinedEarlier && !blockMinedLater
+
+	if blockMinedEarlier {
+		// The block here appears earlier than the upcoming block.
+		// Because of this, we will be removing the existing block
+		// and adding the newly scheduled one.
+
+		s.Forks[s.Nodes[minedBy].Fork].Remove(nextBlockMinedEvent)
+		s.scheduleBlockMinedEvent(minedBy, minedAt, previousBlock, depth)
+
+		logrus.Debugf("EARLY | Fork %d | Block mined earlier than the upcoming block.", s.Nodes[minedBy].Fork)
+
+		// TODO: Calculate statistics for the removed block.
+		return
+	}
+
+	if blockMinedLater {
+		// The block here appears later than the upcoming block.
+		// Because of this, we will simply calculate the statistics
+		// for this block and move on.
+
+		logrus.Debugf("LATE | Fork %d | Block mined later than the upcoming block.", s.Nodes[minedBy].Fork)
+
+		// TODO: Calculate statistics for the removed block.
+		// IMPORTANT: Need to calculate receive delay here - across many nodes it matters.
+		return
+	}
+
+	if blocksOverlap {
+		// The blocks overlap. As such, we will be creating a
+		// fork for this. The existing blocks will stay on
+		// their own fork, but a new fork will appear.
+
+		s.ForkCount += 1
+		s.Forks[s.ForkCount] = CreateEventQueue()
+		s.Nodes[minedBy].Fork = s.ForkCount
+
+		logrus.Debugf("OVERLAP | Fork %d | Blocks mined within block receival interval.", s.Nodes[minedBy].Fork)
+
+		s.scheduleBlockMinedEvent(minedBy, minedAt, previousBlock, depth)
+		return
+	}
+
+	panic("impossible situation: block is not - mined before, mined after, overlaps")
 }
 
-func scheduleBlockMinedEvent(minedBy int, minedAt float64, previousBlock int) {
-	previousEvent := simulation.Nodes[minedBy].CurrentEvent
-
-	depth := 0
-	if previousEvent != nil {
-		depth = previousEvent.Depth + 1
-	}
-
+func (s *Simulation) scheduleBlockMinedEvent(minedBy int, minedAt float64, previousBlock int, depth int) {
 	event := &Event{
 		Node: minedBy,
 
-		Block:         simulation.BlockCount,
+		Block:         s.BlockCount,
 		PreviousBlock: previousBlock,
 		Depth:         depth,
+		Fork:          s.Nodes[minedBy].Fork,
 
-		ScheduledAt: simulation.CurrentTime,
+		ScheduledAt: s.CurrentTime,
 		DispatchAt:  minedAt,
 	}
 
-	simulation.Nodes[minedBy].CurrentEvent = event
-	simulation.BlockMinedEventQueue.Push(event)
+	s.Nodes[minedBy].CurrentEvent = event
+	s.Forks[s.Nodes[minedBy].Fork].Push(event)
 }
 
-func ScheduleBlockReceivedEvent(receivedBy int, minedEvent *Event) {
-	// If only one event in the BlockReceivedEventQueue - don't actually handle block received events.
-	if simulation.BlockMinedEventQueue.Len() > 1 {
-		simulation.BlockReceivedEventQueue.Push(&Event{
+func (s *Simulation) ScheduleBlockReceivedEvent(receivedBy int, minedEvent *Event) {
+
+	if len(s.Forks) > 1 {
+		event := &Event{
 			Node: receivedBy,
 
 			Block:         minedEvent.Block,
 			PreviousBlock: minedEvent.PreviousBlock,
 			Depth:         minedEvent.Depth,
+			Fork:          minedEvent.Fork,
 
-			ScheduledAt: simulation.CurrentTime,
-			DispatchAt:  GetNextReceivedTime(),
-		})
+			ScheduledAt: s.CurrentTime,
+			DispatchAt:  s.GetNextReceivedTime(),
+		}
 
-	} else {
-		logrus.Info("doing out of band calculation")
-		// Here we would need to calculate the statistics for semi mined block
-		// that was dismissed before too.
-
-		// calculate when the block would be received
-
-		oldSimulationTime := simulation.CurrentTime
-		simulation.CurrentTime = GetNextReceivedTime()
-		ScheduleBlockMinedEvent(receivedBy, minedEvent.Block)
-		simulation.CurrentTime = oldSimulationTime
+		logrus.Debugf("SCHEDULING | BlockReceivedEvent | Block %d received by %d | %s", minedEvent.Block, receivedBy, event.ToString())
+		s.Network.Push(event)
+		return
 	}
 
+	oldSimulationTime := s.CurrentTime
+	s.CurrentTime = s.GetNextReceivedTime()
+
+	logrus.Debugf("SCHEDULING | BlockReceivedEvent | Block %d received by %d | Pretending that current time is %f", minedEvent.Block, receivedBy, s.CurrentTime)
+	s.ScheduleBlockMinedEvent(receivedBy, minedEvent.Block, minedEvent.Depth+1)
+	s.CurrentTime = oldSimulationTime
 }
