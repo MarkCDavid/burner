@@ -21,16 +21,23 @@ func (queue EventQueue) Push(event *Event) {
 	heap.Push(queue._queue, event)
 }
 
+func (queue EventQueue) Remove(event *Event) {
+	heap.Remove(queue._queue, event.Index)
+}
+
 func (queue EventQueue) Pop() *Event {
 	return heap.Pop(queue._queue).(*Event)
 }
 
-func (queue EventQueue) Peek() *Event {
-	return queue._queue.Peek().(*Event)
-}
-
 func (queue EventQueue) Len() int {
 	return queue._queue.Len()
+}
+
+func (queue EventQueue) Peek() *Event {
+	if queue.Len() == 0 {
+		return nil
+	}
+	return (*queue._queue)[0]
 }
 
 type InternalEventQueue []*Event
@@ -69,8 +76,4 @@ func (queue *InternalEventQueue) Pop() any {
 	*queue = _queue[:_lastIndex]
 
 	return item
-}
-
-func (queue *InternalEventQueue) Peek() any {
-	return (*queue)[0]
 }

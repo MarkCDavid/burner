@@ -1,24 +1,11 @@
 package internal
 
 import (
-	"fmt"
+	"github.com/sirupsen/logrus"
 )
 
-func GetNextMiningTime(nodeIndex int, previousBlock int) float64 {
-	difficulty := simulation.Blocks[previousBlock].ProofOfBurnDifficulty
-	distributedFrequency := float64(simulation.Configuration.AverageBlockFrequencyInSeconds) * float64(difficulty)
-	return simulation.CurrentTime + simulation.Random.Expovariate((simulation.Nodes[nodeIndex].NodePower)/distributedFrequency)
-}
-
-func GetNextMiningTimePoB(nodeIndex int, previousBlock int) float64 {
-	// TODO: Need to model when the "virtual pc" cannot mine any longer.
-	difficulty := pobSimulation.Blocks[previousBlock].ProofOfBurnDifficulty
-	distributedFrequency := float64(600) * float64(difficulty)
-	return pobSimulation.CurrentTime + pobSimulation.Random.Expovariate(100/distributedFrequency)
-}
-func GetNextReceivedTimePoB() float64 {
-	offset := pobSimulation.Random.Expovariate(1.0 / float64(6))
-	return pobSimulation.CurrentTime + offset
+func GetNextMiningTime() float64 {
+	return simulation.CurrentTime + simulation.Random.Expovariate(simulation.Configuration.InverseAverageBlockFrequency)
 }
 
 func GetNextReceivedTime() float64 {
@@ -26,157 +13,111 @@ func GetNextReceivedTime() float64 {
 		return simulation.CurrentTime
 	}
 
-	offset := simulation.Random.Expovariate(1.0 / float64(simulation.Configuration.AverageNetworkLatencyInSeconds))
-
-	if offset >= 2*simulation.Configuration.SimulationTime {
-		offset = 2 * simulation.Configuration.SimulationTime
+	delta := simulation.Random.Expovariate(simulation.Configuration.InverseAverageNetworkLatency)
+	if delta > simulation.Configuration.UpperBoundNetworkLatency {
+		delta = simulation.Configuration.UpperBoundNetworkLatency
 	}
 
-	if offset <= 0.5*simulation.Configuration.SimulationTime {
-		offset = 0.5 * simulation.Configuration.SimulationTime
+	if delta < simulation.Configuration.LowerBoundNetworkLatency {
+		delta = simulation.Configuration.LowerBoundNetworkLatency
 	}
 
-	return simulation.CurrentTime + offset
-}
-
-func GetNextBlockType(minedBy int) BlockType {
-	return ProofOfWork
-	// if simulation.Configuration.ProofOfBurnEveryNthBlock <= 0 {
-	// 	return ProofOfBurn
-	// }
-	// proofOfBurnProbability := 1.0 / float64(simulation.Configuration.NodeCount*simulation.Configuration.ProofOfBurnEveryNthBlock)
-	// if proofOfBurnProbability > simulation.Random.float() {
-	// 	return ProofOfBurn
-	// }
-	//
-	// return ProofOfWork
-}
-func ScheduleBlockMinedEventPoB(
-	minedBy int,
-	previousBlock int,
-) {
-	difficulty := pobSimulation.Blocks[previousBlock].ProofOfBurnDifficulty
-	minedAt := GetNextMiningTimePoB(minedBy, previousBlock)
-
-	miningTime := (minedAt - pobSimulation.CurrentTime)
-
-	difficultyMultiplier := 600.0 / miningTime
-	if difficultyMultiplier > 4 {
-		difficultyMultiplier = 4
-	}
-	if difficultyMultiplier < 0.25 {
-		difficultyMultiplier = 0.25
-	}
-
-	block := Block{
-		Node:                  minedBy,
-		BlockType:             ProofOfBurn,
-		PreviousBlock:         previousBlock,
-		StartedAt:             pobSimulation.CurrentTime,
-		FinishedAt:            minedAt,
-		ProofOfBurnDifficulty: difficulty * difficultyMultiplier,
-		Depth:                 pobSimulation.Blocks[previousBlock].Depth + 1,
-	}
-
-	pobSimulation.Blocks = append(pobSimulation.Blocks, block)
-	currentBlock := len(pobSimulation.Blocks) - 1
-	pobSimulation.Nodes[minedBy].CurrentlyMinedBlock = currentBlock
-
-	pobSimulation.Queue.Push(&Event{
-		Type:       BlockMinedEvent,
-		Node:       minedBy,
-		Block:      currentBlock,
-		DispatchAt: minedAt,
-	})
+	return simulation.CurrentTime + delta
 }
 
 func ScheduleBlockMinedEvent(
 	minedBy int,
 	previousBlock int,
 ) {
-	blockType := GetNextBlockType(minedBy)
-	minedAt := GetNextReceivedTime()
-	difficulty := simulation.Blocks[previousBlock].ProofOfBurnDifficulty
-	finishedAt := minedAt
 
-	// nextEvent := simulation.Queue.Peek()
-	// if nextEvent.Type == BlockMinedEvent && nextEvent.DispatchAt+2*simulation.Configuration.SimulationTime < minedAt {
-	//
-	// }
-	//
-	switch blockType {
-	case ProofOfBurn:
-		break
-	case ProofOfWork:
-		minedAt = GetNextMiningTime(minedBy, previousBlock)
+	logrus.Debugf("============ Schedule Block Mined Event (%d)", minedBy)
+	simulation.BlockCount += 1
+	minedAt := GetNextMiningTime()
 
-		if simulation.Blocks[previousBlock].Depth > 0 && simulation.Blocks[previousBlock].Depth%2016 == 0 {
-			//Difficulty adjustment TIME!!!!
-			currentIndex := previousBlock
-			previousIndex := simulation.Blocks[currentIndex].PreviousBlock
-			totalTime := 0.0
-			for i := 0; i < 2016; i++ {
+	nextBlockMinedEvent := simulation.BlockMinedEventQueue.Peek()
 
-				totalTime += simulation.Blocks[currentIndex].FinishedAt - simulation.Blocks[previousIndex].FinishedAt
-				currentIndex = previousIndex
-				previousIndex = simulation.Blocks[currentIndex].PreviousBlock
-			}
-			fmt.Printf("Epoch time %f\n", totalTime)
-			fmt.Printf("Expected ~2 weeks %f\n", 2.0*7.0*24.0*60.0*60.0)
-			fmt.Printf("Diff %f\n", totalTime-2.0*7.0*24.0*60.0*60.0)
+	if simulation.BlockMinedEventQueue.Len() == 1 && nextBlockMinedEvent != nil {
+		newBlockLowerBound := minedAt
+		newBlockUpperBound := minedAt + simulation.Configuration.UpperBoundNetworkLatency
 
-			difficultyMultiplier := (2.0 * 7.0 * 24.0 * 60.0 * 60.0) / float64(totalTime)
-			if difficultyMultiplier < 0.25 {
-				difficultyMultiplier = 0.25
-			}
-			if difficultyMultiplier > 4 {
-				difficultyMultiplier = 4
-			}
+		oldBlockLowerBound := nextBlockMinedEvent.DispatchAt
+		oldBlockUpperBound := nextBlockMinedEvent.DispatchAt + simulation.Configuration.UpperBoundNetworkLatency
 
-			difficulty = difficulty * difficultyMultiplier
+		// The newly scheduled block here might be:
+		if newBlockUpperBound < oldBlockLowerBound {
+
+			logrus.Infof("Block mined earlier than earlierst receival time of most recent block. Remove old, calculate statistics, schedule new.")
+			// 1. Scheduled before the next block, remove old, stats for old
+			simulation.BlockMinedEventQueue.Remove(nextBlockMinedEvent)
+			// fmt.Println("too early, remove later, just calculate stats")
+			// Calculate stats here?
+			scheduleBlockMinedEvent(minedBy, minedAt, previousBlock)
+		} else if newBlockLowerBound > oldBlockUpperBound {
+			// 2. Scheduled after the next block, don't schedule, just stats
+			logrus.Infof("Block mined later than latest receival time of most recent block. Calculate statistics, skip.")
+			// IMPORTANT: Need to calculate receive delay here - across many nodes it matters.
+		} else {
+
+			logrus.Infof("Blocks mined within block receival interval.")
+			// 3. Scheduled during the next block
+			scheduleBlockMinedEvent(minedBy, minedAt, previousBlock)
+			// panic("wowza, we gon have to figure out forks")
 		}
+	} else {
 
-		finishedAt = 0
-		break
-	default:
-		panic("Unknown type")
+		logrus.Infof("Regular scheduling")
+		scheduleBlockMinedEvent(minedBy, minedAt, previousBlock)
 	}
-
-	block := Block{
-		Node:                  minedBy,
-		BlockType:             blockType,
-		PreviousBlock:         previousBlock,
-		StartedAt:             simulation.CurrentTime,
-		FinishedAt:            finishedAt,
-		ProofOfBurnDifficulty: difficulty,
-		Depth:                 simulation.Blocks[previousBlock].Depth + 1,
-	}
-
-	simulation.Blocks = append(simulation.Blocks, block)
-	currentBlock := len(simulation.Blocks) - 1
-	simulation.Nodes[minedBy].CurrentlyMinedBlock = currentBlock
-
-	simulation.Queue.Push(&Event{
-		Type:       BlockMinedEvent,
-		Node:       minedBy,
-		Block:      currentBlock,
-		DispatchAt: minedAt,
-	})
 }
 
-func ScheduleBlockReceivedEvent(receivedBy int, minedBlock int) {
-	simulation.Queue.Push(&Event{
-		Type:       BlockReceivedEvent,
-		Node:       receivedBy,
-		Block:      minedBlock,
-		DispatchAt: GetNextReceivedTime(),
-	})
+func scheduleBlockMinedEvent(minedBy int, minedAt float64, previousBlock int) {
+	previousEvent := simulation.Nodes[minedBy].CurrentEvent
+
+	depth := 0
+	if previousEvent != nil {
+		depth = previousEvent.Depth + 1
+	}
+
+	event := &Event{
+		Node: minedBy,
+
+		Block:         simulation.BlockCount,
+		PreviousBlock: previousBlock,
+		Depth:         depth,
+
+		ScheduledAt: simulation.CurrentTime,
+		DispatchAt:  minedAt,
+	}
+
+	simulation.Nodes[minedBy].CurrentEvent = event
+	simulation.BlockMinedEventQueue.Push(event)
 }
-func ScheduleBlockReceivedEventPoB(receivedBy int, minedBlock int) {
-	pobSimulation.Queue.Push(&Event{
-		Type:       BlockReceivedEvent,
-		Node:       receivedBy,
-		Block:      minedBlock,
-		DispatchAt: GetNextReceivedTimePoB(),
-	})
+
+func ScheduleBlockReceivedEvent(receivedBy int, minedEvent *Event) {
+	// If only one event in the BlockReceivedEventQueue - don't actually handle block received events.
+	if simulation.BlockMinedEventQueue.Len() > 1 {
+		simulation.BlockReceivedEventQueue.Push(&Event{
+			Node: receivedBy,
+
+			Block:         minedEvent.Block,
+			PreviousBlock: minedEvent.PreviousBlock,
+			Depth:         minedEvent.Depth,
+
+			ScheduledAt: simulation.CurrentTime,
+			DispatchAt:  GetNextReceivedTime(),
+		})
+
+	} else {
+		logrus.Info("doing out of band calculation")
+		// Here we would need to calculate the statistics for semi mined block
+		// that was dismissed before too.
+
+		// calculate when the block would be received
+
+		oldSimulationTime := simulation.CurrentTime
+		simulation.CurrentTime = GetNextReceivedTime()
+		ScheduleBlockMinedEvent(receivedBy, minedEvent.Block)
+		simulation.CurrentTime = oldSimulationTime
+	}
+
 }

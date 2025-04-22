@@ -1,57 +1,19 @@
 package internal
 
-import unsafe "unsafe"
-
-type BlockType int
-
-const (
-	ProofOfWork BlockType = 0
-	ProofOfBurn BlockType = 1
-)
-
-type Block struct {
-	Node                  int
-	BlockType             BlockType
-	PreviousBlock         int
-	Depth                 int
-	StartedAt             float64
-	FinishedAt            float64
-	ProofOfBurnDifficulty float64
-	Mined                 bool
-}
-
-var _block Block
-
-const BlockSize = int(unsafe.Sizeof(_block))
-
 type Node struct {
-	CurrentlyMinedBlock int
-	NodePower           float64
+	CurrentEvent *Event
 }
-
-type PoBNode struct {
-	CurrentlyMinedBlock int
-	Burners             [10]float64
-}
-
-type EventType int
-
-const (
-	BlockMinedEvent    EventType = 0
-	BlockReceivedEvent EventType = 1
-)
 
 type Event struct {
-	Type EventType
+	Node int `json:"node"`
 
-	Block int
-	Node  int
+	Block         int `json:"block"`
+	PreviousBlock int `json:"previousBlock"`
+	Depth         int `json:"depth"`
+	Fork          int `json:"fork"`
 
-	DispatchAt float64
+	ScheduledAt float64 `json:"scheduledAt"`
+	DispatchAt  float64 `json:"dispatchAt"`
 
-	Index int
+	Index int `json:"index"`
 }
-
-var _event Event
-
-const EventSize = int(unsafe.Sizeof(_event))
