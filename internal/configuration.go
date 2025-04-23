@@ -11,8 +11,6 @@ type Configuration struct {
 	SimulationTime float64 `yaml:"simulation_time_in_seconds"`
 
 	AverageNetworkLatencyInSeconds int `yaml:"average_network_latency_in_seconds"`
-	LowerBoundNetworkLatency       float64
-	UpperBoundNetworkLatency       float64
 	InverseAverageNetworkLatency   float64
 
 	AverageBlockFrequencyInSeconds int `yaml:"average_block_frequency_in_seconds"`
@@ -35,8 +33,6 @@ func mustLoadConfiguration(configuarionPath string) Configuration {
 		panic(err)
 	}
 
-	configuration.LowerBoundNetworkLatency = float64(configuration.AverageNetworkLatencyInSeconds) * float64(0.5)
-	configuration.UpperBoundNetworkLatency = float64(configuration.AverageNetworkLatencyInSeconds) * float64(2.0)
 	configuration.InverseAverageNetworkLatency = 1.0 / float64(configuration.AverageNetworkLatencyInSeconds)
 
 	configuration.InverseAverageBlockFrequency = 1.0 / (float64(configuration.AverageBlockFrequencyInSeconds) * float64(configuration.NodeCount))
