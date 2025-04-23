@@ -16,14 +16,16 @@ import (
 //
 // )
 type Simulation struct {
-	Configuration Configuration
-	Nodes         []Node
-	Forks         map[int]EventQueue
-	Network       EventQueue
-	Random        *Rng
-	BlockCount    int
-	ForkCount     int
-	CurrentTime   float64
+	Configuration  Configuration
+	Nodes          []Node
+	Forks          map[int]EventQueue
+	ForkDependence map[int]int
+	Network        EventQueue
+	Random         *Rng
+	Blocks         map[int]*Block
+	BlockCount     int
+	ForkCount      int
+	CurrentTime    float64
 }
 
 func (s *Simulation) GetNextEvent() (*Event, EventType) {
@@ -64,17 +66,29 @@ func Simulate(configuration_path string, seed *int64) error {
 		Configuration: configuration,
 		Nodes:         nodes,
 
-		Forks:   make(map[int]EventQueue),
-		Network: CreateEventQueue(),
+		Forks:          make(map[int]EventQueue),
+		ForkDependence: make(map[int]int),
+		Network:        CreateEventQueue(),
+		Blocks:         make(map[int]*Block, 0),
 
 		Random:      random,
 		CurrentTime: 0,
+		BlockCount:  1,
+	}
+
+	s.Blocks[0] = &Block{
+		Node:          -1,
+		Block:         0,
+		PreviousBlock: -1,
+		Depth:         0,
+		Fork:          0,
 	}
 
 	s.Forks[0] = CreateEventQueue()
+	s.ForkDependence[0] = 0
 
 	for nodeId := 0; nodeId < configuration.NodeCount; nodeId += 1 {
-		s.ScheduleBlockMinedEvent(nodeId, 0, 0)
+		s.ScheduleBlockMinedEvent(nodeId, 0, 1)
 	}
 
 	iteration := 0
@@ -85,8 +99,8 @@ func Simulate(configuration_path string, seed *int64) error {
 		logrus.Infof("FORKS | %d", len(s.Forks))
 
 		for fork := range s.Forks {
-			logrus.Infof("FORK | %d | Size: %d", fork, s.Forks[fork].Len())
-			if s.Forks[fork].Len() == 0 {
+			logrus.Infof("FORK | %d | Size: %d Dependence: %d", fork, s.Forks[fork].Len(), s.ForkDependence[fork])
+			if s.ForkDependence[fork] < 1 && s.Forks[fork].Len() == 0 {
 				logrus.Infof("FORK | %d | Empty - deleting", fork)
 				delete(s.Forks, fork)
 			}
@@ -157,6 +171,8 @@ func Simulate(configuration_path string, seed *int64) error {
 	// 		break
 	// 	}
 	// }
+
+	s.ExportBlocksToDotGraph("chain.dot")
 
 	return nil
 }

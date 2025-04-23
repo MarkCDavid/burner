@@ -7,7 +7,8 @@ import (
 )
 
 type Rng struct {
-	_rng *rand.Rand
+	_rng  *rand.Rand
+	_seed int64
 }
 
 func CreateRandom(seed *int64) *Rng {
@@ -17,8 +18,13 @@ func CreateRandom(seed *int64) *Rng {
 	}
 
 	return &Rng{
-		_rng: rand.New(rand.NewSource(*seed)),
+		_rng:  rand.New(rand.NewSource(*seed)),
+		_seed: *seed,
 	}
+}
+
+func (r *Rng) GetSeed() int64 {
+	return r._seed
 }
 
 func (r *Rng) Expovariate(lambda float64) float64 {
