@@ -31,7 +31,7 @@ func Execute() {
 
 func setupLogrus() {
 	logrus.SetOutput(os.Stdout)
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.WarnLevel)
 	logrus.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 		ForceColors:   true,

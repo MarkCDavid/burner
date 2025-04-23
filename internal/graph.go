@@ -19,12 +19,16 @@ func (s *Simulation) ExportBlocksToDotGraph(filename string) error {
 	fmt.Fprintf(file, "    \"seed[%d]\"", s.Random.GetSeed())
 
 	for i := range s.Blocks {
-		logrus.Debug(s.Blocks[i].ToString())
-		s.addNode(file, i)
+		if s.Blocks[i].Mined {
+			logrus.Debug(s.Blocks[i].ToString())
+			s.addNode(file, i)
+		}
 	}
 
 	for i := range s.Blocks {
-		s.addEdge(file, i)
+		if s.Blocks[i].Mined {
+			s.addEdge(file, i)
+		}
 	}
 
 	fmt.Fprintln(file, "}")
