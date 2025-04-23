@@ -32,17 +32,21 @@ func (s *Simulation) ScheduleBlockMinedEvent(
 ) {
 
 	s.BlockCount += 1
-	logrus.Debugf("SCHEDULING | BlockMinedEvent | Block %d mined by %d", s.BlockCount, minedBy)
+	logrus.Debugf("SCHEDULING | BlockMinedEvent | Block %d mined by %d (on fork %d)", s.BlockCount, minedBy, s.Nodes[minedBy].Fork)
 	minedAt := s.GetNextMiningTime()
+
+	s.Blocks[s.BlockCount] = &Block{
+		Node:          minedBy,
+		Block:         s.BlockCount,
+		PreviousBlock: previousBlock,
+		Depth:         depth,
+		Fork:          s.Nodes[minedBy].Fork,
+		ScheduledAt:   s.CurrentTime,
+		DispatchAt:    minedAt,
+	}
 
 	if s.Forks[s.Nodes[minedBy].Fork].Len() == 0 {
 		logrus.Debugf("EMPTY | Fork %d | Adding a new event.", s.Nodes[minedBy].Fork)
-		s.scheduleBlockMinedEvent(minedBy, minedAt, previousBlock, depth)
-		return
-	}
-
-	if len(s.Forks) > 1 {
-		logrus.Debugf("FORKS | Fork %d | Force adding new event.", s.Nodes[minedBy].Fork)
 		s.scheduleBlockMinedEvent(minedBy, minedAt, previousBlock, depth)
 		return
 	}
@@ -59,6 +63,21 @@ func (s *Simulation) ScheduleBlockMinedEvent(
 	blockMinedLater := newBlockLowerBound > oldBlockUpperBound
 	blocksOverlap := !blockMinedEarlier && !blockMinedLater
 
+	if blocksOverlap {
+		// The blocks overlap. As such, we will be creating a
+		// fork for this. The existing blocks will stay on
+		// their own fork, but a new fork will appear.
+
+		s.ForkCount += 1
+		s.Forks[s.ForkCount] = CreateEventQueue()
+		s.Nodes[minedBy].Fork = s.ForkCount
+
+		logrus.Debugf("OVERLAP | Fork %d | Blocks mined within block receival interval.", s.Nodes[minedBy].Fork)
+
+		s.scheduleBlockMinedEvent(minedBy, minedAt, previousBlock, depth)
+		return
+	}
+
 	if blockMinedEarlier {
 		// The block here appears earlier than the upcoming block.
 		// Because of this, we will be removing the existing block
@@ -68,6 +87,7 @@ func (s *Simulation) ScheduleBlockMinedEvent(
 		s.scheduleBlockMinedEvent(minedBy, minedAt, previousBlock, depth)
 
 		logrus.Debugf("EARLY | Fork %d | Block mined earlier than the upcoming block.", s.Nodes[minedBy].Fork)
+		logrus.Debugf("EARLY | Fork %d | Removing %s.", s.Nodes[minedBy].Fork, nextBlockMinedEvent.ToString())
 
 		// TODO: Calculate statistics for the removed block.
 		return
@@ -85,25 +105,17 @@ func (s *Simulation) ScheduleBlockMinedEvent(
 		return
 	}
 
-	if blocksOverlap {
-		// The blocks overlap. As such, we will be creating a
-		// fork for this. The existing blocks will stay on
-		// their own fork, but a new fork will appear.
-
-		s.ForkCount += 1
-		s.Forks[s.ForkCount] = CreateEventQueue()
-		s.Nodes[minedBy].Fork = s.ForkCount
-
-		logrus.Debugf("OVERLAP | Fork %d | Blocks mined within block receival interval.", s.Nodes[minedBy].Fork)
-
-		s.scheduleBlockMinedEvent(minedBy, minedAt, previousBlock, depth)
-		return
-	}
-
+	// if len(s.Forks) > 1 {
+	// 	logrus.Debugf("FORKS | Fork %d | Force adding new event.", s.Nodes[minedBy].Fork)
+	// 	s.scheduleBlockMinedEvent(minedBy, minedAt, previousBlock, depth)
+	// 	return
+	// }
+	//
 	panic("impossible situation: block is not - mined before, mined after, overlaps")
 }
 
 func (s *Simulation) scheduleBlockMinedEvent(minedBy int, minedAt float64, previousBlock int, depth int) {
+
 	event := &Event{
 		Node: minedBy,
 
@@ -122,6 +134,7 @@ func (s *Simulation) scheduleBlockMinedEvent(minedBy int, minedAt float64, previ
 
 func (s *Simulation) ScheduleBlockReceivedEvent(receivedBy int, minedEvent *Event) {
 
+	logrus.Debugf("SCHEDULING | BlockReceivedEvent | %s", minedEvent.ToString())
 	if len(s.Forks) > 1 {
 		event := &Event{
 			Node: receivedBy,
@@ -136,6 +149,8 @@ func (s *Simulation) ScheduleBlockReceivedEvent(receivedBy int, minedEvent *Even
 		}
 
 		logrus.Debugf("SCHEDULING | BlockReceivedEvent | Block %d received by %d | %s", minedEvent.Block, receivedBy, event.ToString())
+
+		s.ForkDependence[minedEvent.Fork] += 1
 		s.Network.Push(event)
 		return
 	}
@@ -144,6 +159,7 @@ func (s *Simulation) ScheduleBlockReceivedEvent(receivedBy int, minedEvent *Even
 	s.CurrentTime = s.GetNextReceivedTime()
 
 	logrus.Debugf("SCHEDULING | BlockReceivedEvent | Block %d received by %d | Pretending that current time is %f", minedEvent.Block, receivedBy, s.CurrentTime)
+	s.Nodes[receivedBy].Fork = minedEvent.Fork
 	s.ScheduleBlockMinedEvent(receivedBy, minedEvent.Block, minedEvent.Depth+1)
 	s.CurrentTime = oldSimulationTime
 }

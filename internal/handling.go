@@ -5,6 +5,8 @@ import (
 )
 
 func (s *Simulation) HandleBlockMinedEvent(event *Event) {
+	s.Blocks[event.Block].Mined = true
+	s.Blocks[event.Block].Fork = s.Nodes[event.Node].Fork
 	s.ScheduleBlockMinedEvent(event.Node, event.Block, event.Depth+1)
 	for currentNode := 0; currentNode < len(s.Nodes); currentNode += 1 {
 		if currentNode != event.Node {
@@ -22,8 +24,18 @@ func (s *Simulation) HandleBlockReceivedEvent(event *Event) {
 		return
 	}
 
+	s.ForkDependence[event.Fork] -= 1
+
 	logrus.Debugf("BLOCK RECEIVED | Block Received Event | %s", event.ToString())
 	logrus.Debugf("BLOCK RECEIVED | Current Mining Event | %s", miningEvent.ToString())
+
+	if miningEvent.Fork == event.Fork && miningEvent.PreviousBlock == event.PreviousBlock {
+		logrus.Debug("BLOCK RECEIVED | rescheduling")
+
+		s.Forks[s.Nodes[event.Node].Fork].Remove(miningEvent)
+		s.ScheduleBlockMinedEvent(event.Node, event.Block, event.Depth+1)
+		return
+	}
 
 	chainReorganizationThreshold := miningEvent.Depth + s.Configuration.ChainReogranizationThreshold
 	deepEnoughForChainReorganization := chainReorganizationThreshold <= event.Depth

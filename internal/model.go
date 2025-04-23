@@ -14,6 +14,19 @@ const (
 	BlockReceivedEvent EventType = 1
 )
 
+type Block struct {
+	Node int `json:"node"`
+
+	Block         int  `json:"block"`
+	PreviousBlock int  `json:"previousBlock"`
+	Depth         int  `json:"depth"`
+	Fork          int  `json:"fork"`
+	Mined         bool `json:"mined"`
+
+	ScheduledAt float64 `json:"scheduledAt"`
+	DispatchAt  float64 `json:"dispatchAt"`
+}
+
 type Event struct {
 	Node int `json:"node"`
 
@@ -33,5 +46,13 @@ func (e *Event) ToString() string {
 		return "nil"
 	}
 	result, _ := json.Marshal(*e)
+	return string(result)
+}
+
+func (b *Block) ToString() string {
+	if b == nil {
+		return "nil"
+	}
+	result, _ := json.Marshal(*b)
 	return string(result)
 }
