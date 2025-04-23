@@ -1,6 +1,6 @@
 ---
-node_count: 3000
-simulation_time_in_seconds: 100000
+node_count: 63000
+simulation_time_in_seconds: 1000000
 
 average_network_latency_in_seconds: 6
 average_block_frequency_in_seconds: 600
