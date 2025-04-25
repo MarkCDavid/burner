@@ -11,6 +11,7 @@ func NewNode(s *Simulation) *Node {
 	efficiency := 1 - math.Pow(s.Random.Float(), 4)
 
 	node := &Node{
+		Id:         int64(len(s.Nodes)),
 		Simulation: s,
 
 		Capability: capability,

@@ -53,27 +53,15 @@ func (s *Statistics) OnBlockAbandoned(simulation *Simulation, event *Event) {
 }
 
 func (s *Statistics) GetTotalBlocks() int64 {
-	var total int64 = 0
-	for i := 0; i < DifficultyVariants; i++ {
-		total += s.BlocksMined[i]
-	}
-	return total
+	return s.BlocksMined[ProofOfWork] + s.BlocksMined[ProofOfBurn]
 }
 
 func (s *Statistics) GetTotalTransactions() int64 {
-	var total int64 = 0
-	for i := 0; i < DifficultyVariants; i++ {
-		total += s.TransactionsProcessed[i]
-	}
-	return total
+	return s.TransactionsProcessed[ProofOfWork] + s.TransactionsProcessed[ProofOfBurn]
 }
 
 func (s *Statistics) GetTotalMiningTime() float64 {
-	var total float64 = 0
-	for i := 0; i < DifficultyVariants; i++ {
-		total += s.BlockMiningTime[i]
-	}
-	return total
+	return s.BlockMiningTime[ProofOfWork] + s.BlockMiningTime[ProofOfBurn]
 }
 
 func (s *Statistics) GetTotalPowerUsed() float64 {

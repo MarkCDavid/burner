@@ -11,27 +11,34 @@ func AddConsensus_SPoB(node *Node) {
 		Enabled: configuration.Enabled,
 
 		Node: node,
+
+		Ratio:      float64(1) / float64(configuration.Interval),
+		Difficulty: float64(1),
 	})
 }
 
 type Consensus_SPoB_Configuration struct {
-	Enabled bool `yaml:"enabled"`
+	Enabled  bool  `yaml:"enabled"`
+	Interval int64 `yaml:"interval"`
 }
 
 type Consensus_SPoB struct {
 	Enabled bool
 
 	Node *Node
+
+	Ratio      float64
+	Difficulty float64
 }
 
-func (d *Consensus_SPoB) Initialize() {}
+func (c *Consensus_SPoB) Initialize() {}
 
-func (d *Consensus_SPoB) GetType() ConsensusType {
+func (c *Consensus_SPoB) GetType() ConsensusType {
 	return ProofOfBurn
 }
 
-func (d *Consensus_SPoB) CanMine(receivedEvent *Event) bool {
-	if !d.Enabled {
+func (c *Consensus_SPoB) CanMine(receivedEvent *Event) bool {
+	if !c.Enabled {
 		return false
 	}
 
@@ -39,12 +46,8 @@ func (d *Consensus_SPoB) CanMine(receivedEvent *Event) bool {
 		return false
 	}
 
-	// TODO: Better modeling for success
-	// IDEA: Maybe we count ratio between PoB and PoW
-	//       if that ratio drops too low, we reduce difficulty,
-	//       if it climbs too high, we increse difficulty?
-	chance := float64(1.0 / (5.0 * len(d.Node.Simulation.Nodes)))
-	return d.Node.Simulation.Random.Chance(chance)
+	chance := float64(1) / c.Difficulty
+	return c.Node.Simulation.Random.Chance(chance)
 }
 
 func (c *Consensus_SPoB) GetNextMiningTime(event *Event) float64 {
@@ -59,4 +62,18 @@ func (c *Consensus_SPoB) Synchronize(consensus Consensus) {
 	}
 }
 
-func (c *Consensus_SPoB) Adjust(event *Event) {}
+func (c *Consensus_SPoB) Adjust(event *Event) {
+	powBlocksMined := event.Node.Simulation.Statistics.BlocksMined[ProofOfWork]
+	pobBlocksMined := event.Node.Simulation.Statistics.BlocksMined[ProofOfBurn]
+
+	actualRatio := float64(pobBlocksMined) / float64(powBlocksMined)
+	deviation := actualRatio / c.Ratio
+
+	if deviation > 4.0 {
+		deviation = 4.0
+	} else if deviation < 0.25 {
+		deviation = 0.25
+	}
+
+	c.Difficulty *= deviation
+}
