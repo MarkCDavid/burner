@@ -18,3 +18,7 @@ proof_of_work:
 
 slimcoin_proof_of_burn:
   enabled: false
+
+razer_proof_of_burn:
+  enabled: true
+  interval: 0.25

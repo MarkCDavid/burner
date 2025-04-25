@@ -16,9 +16,17 @@ var simulationCmd = &cobra.Command{
 		internal.TimeFunction(bitcoin.Simulate, "bitcoin.Simulate()")
 		internal.PrintMemoryUsage()
 
-		slimcoin := internal.NewSimulation("./configuration/slimcoin.yaml")
-		internal.TimeFunction(slimcoin.Simulate, "slimcoin.Simulate()")
+		// slimcoin := internal.NewSimulation("./configuration/slimcoin.yaml")
+		// internal.TimeFunction(slimcoin.Simulate, "slimcoin.Simulate()")
+		// internal.PrintMemoryUsage()
+
+		razer := internal.NewSimulation("./configuration/razer.yaml")
+		internal.TimeFunction(razer.Simulate, "razer.Simulate()")
 		internal.PrintMemoryUsage()
+
+		// solo_razer := internal.NewSimulation("./configuration/solo_razer.yaml")
+		// internal.TimeFunction(solo_razer.Simulate, "solo_razer.Simulate()")
+		// internal.PrintMemoryUsage()
 
 		return nil
 	},

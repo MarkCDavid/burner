@@ -1,7 +1,5 @@
 package internal
 
-import "github.com/sirupsen/logrus"
-
 func (s *Simulation) GetNextReceivedTime() float64 {
 	if s.Configuration.AverageNetworkLatencyInSeconds <= 0 {
 		return s.CurrentTime
@@ -46,7 +44,6 @@ func (s *Simulation) ScheduleBlockMinedEvent(
 ) {
 	block := ProduceBlock(minedBy, receivedEvent)
 	if block == nil {
-		logrus.Warnf("Miner (%d) can't produce a block in any available consensus layers.", minedBy.Id)
 		return
 	}
 

@@ -40,7 +40,7 @@ type Consensus_PoW struct {
 
 func (c *Consensus_PoW) Initialize() {
 	for _, node := range c.Node.Simulation.Nodes {
-		c.Difficulty += node.Power
+		c.Difficulty += node.Power[ProofOfWork]
 	}
 }
 
@@ -53,7 +53,7 @@ func (c *Consensus_PoW) CanMine(receivedEvent *Event) bool {
 }
 
 func (c *Consensus_PoW) GetNextMiningTime(event *Event) float64 {
-	lambda := c.Node.Power / (c.BlockFreqency * c.Difficulty)
+	lambda := c.Node.Power[ProofOfWork] / (c.BlockFreqency * c.Difficulty)
 	return c.Node.Simulation.CurrentTime + c.Node.Simulation.Random.Expovariate(lambda)
 }
 
