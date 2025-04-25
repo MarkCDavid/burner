@@ -1,10 +1,9 @@
 ---
-# seed: 1
-
-node_count: 63000
+# node_count: 63000
+node_count: 3
 simulation_time_in_seconds: 31622400
 
-chain_reorganization_threshold: 2
+chain_reorganization_threshold: 6
 average_network_latency_in_seconds: 60
 average_transactions_per_second: 4
 maximum_transaction_per_block: 3000
@@ -15,6 +14,6 @@ proof_of_work:
   average_block_frequency_in_seconds: 600
 
 slimcoin_proof_of_burn:
-  enabled: false
+  enabled: true
   epoch_length: 1
   average_block_frequency_in_seconds: 0.000001

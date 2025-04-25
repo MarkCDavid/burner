@@ -8,8 +8,16 @@ import (
 var simulationCmd = &cobra.Command{
 	Use: "simulation",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		simulation := internal.NewSimulation("./configuration/default.yaml")
-		internal.TimeFunction(simulation.Simulate, "simulation.Simulate()")
+		// simulation := internal.NewSimulation("./configuration/default.yaml")
+		// internal.TimeFunction(simulation.Simulate, "simulation.Simulate()")
+		// internal.PrintMemoryUsage()
+
+		bitcoin := internal.NewSimulation("./configuration/bitcoin.yaml")
+		internal.TimeFunction(bitcoin.Simulate, "bitcoin.Simulate()")
+		internal.PrintMemoryUsage()
+
+		slimcoin := internal.NewSimulation("./configuration/slimcoin.yaml")
+		internal.TimeFunction(slimcoin.Simulate, "slimcoin.Simulate()")
 		internal.PrintMemoryUsage()
 
 		return nil

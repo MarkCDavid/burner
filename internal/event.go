@@ -14,16 +14,17 @@ const (
 type BlockType int
 
 const (
-	Genesis     BlockType = -1
-	ProofOfWork BlockType = 0
-	ProofOfBurn BlockType = 1
+	Genesis             BlockType = -1
+	ProofOfWork         BlockType = 0
+	SlimcoinProofOfBurn BlockType = 1
 )
 
 type Block struct {
-	Id    int64
-	Node  int64
-	Depth int64
-	Type  BlockType
+	Id           int64
+	Node         int64
+	Depth        int64
+	Transactions int64
+	Type         BlockType
 }
 
 type Event struct {

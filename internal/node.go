@@ -13,10 +13,17 @@ func (s *Simulation) NewNode() {
 		Difficulty: [2]Difficulty{},
 	}
 
-	node.Difficulty[ProofOfWork] = NewProofOfWorkDifficulty(s.Configuration.ProofOfWork.EpochLength, s.Configuration.ProofOfWork.AverageBlockFrequencyInSeconds)
-	node.Difficulty[ProofOfBurn] = NewProofOfWorkDifficulty(s.Configuration.ProofOfWork.EpochLength, s.Configuration.ProofOfWork.AverageBlockFrequencyInSeconds)
+	node.Difficulty[ProofOfWork] = NewProofOfWorkDifficulty(
+		s.Configuration.ProofOfWork.Enabled,
+		s.Configuration.ProofOfWork.EpochLength,
+		s.Configuration.ProofOfWork.AverageBlockFrequencyInSeconds,
+	)
+	node.Difficulty[SlimcoinProofOfBurn] = NewSlimcoinProofOfBurnDifficulty(
+		s.Configuration.SlimcoinProofOfBurn.Enabled,
+	)
 
 	s.Nodes = append(s.Nodes, node)
+	s.Statistics.PerNode = append(s.Statistics.PerNode, NodeStatistics{})
 }
 
 type Node struct {
@@ -25,4 +32,5 @@ type Node struct {
 	Efficiency   float64
 	Power        float64
 	Difficulty   [2]Difficulty
+	Transactions int64
 }
