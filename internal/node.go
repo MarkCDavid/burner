@@ -1,36 +1,75 @@
 package internal
 
-import "math"
+import (
+	"math"
 
-func (s *Simulation) NewNode() {
+	"github.com/sirupsen/logrus"
+)
+
+func NewNode(s *Simulation) *Node {
 	capability := s.Random.LogNormal(AveragePowerUsage_Node_ProofOfWork)
 	efficiency := 1 - math.Pow(s.Random.Float(), 4)
 
 	node := &Node{
+		Simulation: s,
+
 		Capability: capability,
 		Efficiency: efficiency,
 		Power:      capability,
-		Difficulty: [2]Difficulty{},
+
+		Consensus: []Consensus{},
 	}
 
-	node.Difficulty[ProofOfWork] = NewProofOfWorkDifficulty(
-		s.Configuration.ProofOfWork.Enabled,
-		s.Configuration.ProofOfWork.EpochLength,
-		s.Configuration.ProofOfWork.AverageBlockFrequencyInSeconds,
-	)
-	node.Difficulty[SlimcoinProofOfBurn] = NewSlimcoinProofOfBurnDifficulty(
-		s.Configuration.SlimcoinProofOfBurn.Enabled,
-	)
+	AddConsensus_SPoB(node)
+	AddConsensus_PoW(node)
 
-	s.Nodes = append(s.Nodes, node)
-	s.Statistics.PerNode = append(s.Statistics.PerNode, NodeStatistics{})
+	node.EnsureConsensusLayerCount("Proof of Work", ProofOfWork)
+	node.EnsureConsensusLayerCount("Proof of Burn", ProofOfBurn)
+
+	return node
+}
+
+func (n *Node) EnsureConsensusLayerCount(name string, consensusType ConsensusType) {
+	total := 0
+	for _, consensus := range n.Consensus {
+		if consensus.GetType() == consensusType {
+			total++
+		}
+	}
+
+	if total > 1 {
+		logrus.Fatalf("Too many %s consensus layers enabled (%d).", name, total)
+	}
+}
+
+func (to *Node) SynchronizeConsensus(from *Node) {
+	for consensusIndex := 0; consensusIndex < len(to.Consensus); consensusIndex++ {
+		to.Consensus[consensusIndex].Synchronize(from.Consensus[consensusIndex])
+	}
 }
 
 type Node struct {
-	CurrentEvent *Event
-	Capability   float64
-	Efficiency   float64
-	Power        float64
-	Difficulty   [2]Difficulty
+	Id int64
+
+	Simulation *Simulation
+
+	Event *Event
+
+	Capability float64
+	Efficiency float64
+	Power      float64
+
+	Consensus []Consensus
+
 	Transactions int64
+}
+
+func (n *Node) GetConsensus(receivedEvent *Event) Consensus {
+	for _, consensus := range n.Consensus {
+		if consensus.CanMine(receivedEvent) {
+			return consensus
+		}
+	}
+	return nil
+
 }

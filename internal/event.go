@@ -11,24 +11,16 @@ const (
 	BlockReceivedEvent EventType = 1
 )
 
-type BlockType int
-
-const (
-	Genesis             BlockType = -1
-	ProofOfWork         BlockType = 0
-	SlimcoinProofOfBurn BlockType = 1
-)
-
 type Block struct {
 	Id           int64
-	Node         int64
+	Node         *Node
 	Depth        int64
 	Transactions int64
-	Type         BlockType
+	Consensus    Consensus
 }
 
 type Event struct {
-	Node int64
+	Node *Node
 
 	EventType EventType
 
@@ -51,4 +43,13 @@ func (e *Event) ToString() string {
 
 func (e *Event) Duration() float64 {
 	return e.DispatchAt - e.ScheduledAt
+}
+
+func (e *Event) SetMiner(n *Node) {
+	e.Node = n
+	n.Event = e
+}
+
+func (e *Event) SetReceiver(n *Node) {
+	e.Node = n
 }

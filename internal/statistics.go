@@ -10,9 +10,9 @@ type NodeStatistics struct {
 }
 
 type Statistics struct {
-	BlocksMined           [DifficultyVariants]int64
-	TransactionsProcessed [DifficultyVariants]int64
-	BlockMiningTime       [DifficultyVariants]float64
+	BlocksMined           [2]int64
+	TransactionsProcessed [2]int64
+	BlockMiningTime       [2]float64
 	PerNode               []NodeStatistics
 }
 
@@ -31,21 +31,25 @@ func (s *Statistics) GetAverageTransactionsPerBlock() float64 {
 }
 
 func (s *Statistics) OnBlockMined(simulation *Simulation, event *Event) {
-	s.BlocksMined[event.Block.Type] += 1
-	s.TransactionsProcessed[event.Block.Type] += event.Block.Transactions
-	s.BlockMiningTime[event.Block.Type] += event.Duration()
+	node := event.Node.Id
+	consensusType := event.Block.Consensus.GetType()
 
-	s.PerNode[event.Node].BlocksMined += 1
-	s.PerNode[event.Node].PowerUsed += event.Duration() * simulation.Nodes[event.Node].Capability
-	s.PerNode[event.Node].TransactionsProcessed += event.Block.Transactions
+	s.BlocksMined[consensusType] += 1
+	s.TransactionsProcessed[consensusType] += event.Block.Transactions
+	s.BlockMiningTime[consensusType] += event.Duration()
 
-	s.PerNode[event.Node].TimeMining += event.Duration()
-	s.PerNode[event.Node].TimeOnSuccessfulMining += event.Duration()
+	s.PerNode[node].BlocksMined += 1
+	s.PerNode[node].PowerUsed += event.Duration() * simulation.Nodes[node].Capability
+	s.PerNode[node].TransactionsProcessed += event.Block.Transactions
+
+	s.PerNode[node].TimeMining += event.Duration()
+	s.PerNode[node].TimeOnSuccessfulMining += event.Duration()
 }
 
 func (s *Statistics) OnBlockAbandoned(simulation *Simulation, event *Event) {
-	s.PerNode[event.Node].PowerUsed += event.Duration() * simulation.Nodes[event.Node].Capability
-	s.PerNode[event.Node].TimeMining += event.Duration()
+	node := event.Node.Id
+	s.PerNode[node].PowerUsed += event.Duration() * simulation.Nodes[node].Capability
+	s.PerNode[node].TimeMining += event.Duration()
 }
 
 func (s *Statistics) GetTotalBlocks() int64 {

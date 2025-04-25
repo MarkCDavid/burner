@@ -2,11 +2,6 @@ package internal
 
 import "github.com/sirupsen/logrus"
 
-func (s *Simulation) GetNextMiningTime(event *Event) float64 {
-	lambda := s.Nodes[event.Node].Difficulty[event.Block.Type].GetLambda(s.Nodes[event.Node].Power)
-	return s.CurrentTime + s.Random.Expovariate(lambda)
-}
-
 func (s *Simulation) GetNextReceivedTime() float64 {
 	if s.Configuration.AverageNetworkLatencyInSeconds <= 0 {
 		return s.CurrentTime
@@ -16,7 +11,7 @@ func (s *Simulation) GetNextReceivedTime() float64 {
 }
 
 func (s *Simulation) GetTransactionsToInclude(event *Event) int64 {
-	availableTransactions := s.GetCurrentTransactionCount() - s.Nodes[event.Node].Transactions
+	availableTransactions := s.GetCurrentTransactionCount() - event.Node.Transactions
 
 	if availableTransactions > s.Configuration.MaximumTransactionsPerBlock {
 		return s.Configuration.MaximumTransactionsPerBlock
@@ -29,52 +24,52 @@ func (s *Simulation) GetTransactionsToInclude(event *Event) int64 {
 	return availableTransactions
 }
 
-func (s *Simulation) ScheduleBlockMinedEvent(
-	minedBy int64,
-	receivedEvent *Event,
-) {
-
-	var blockType BlockType = DifficultyVariants - 1
-
-	for {
-		if s.Nodes[minedBy].Difficulty[blockType].CanMine(s, receivedEvent.Block, s.Nodes[minedBy].Power) {
-			break
-		}
-
-		blockType--
-		if blockType < 0 {
-			logrus.Warnf("%d - miner could not mine a single block type", minedBy)
-			return
-		}
+func ProduceBlock(minedBy *Node, receivedEvent *Event) *Block {
+	consensus := minedBy.GetConsensus(receivedEvent)
+	if consensus == nil {
+		return nil
 	}
 
-	s.BlockCount += 1
+	minedBy.Simulation.BlockCount += 1
+
+	return &Block{
+		Id:        minedBy.Simulation.BlockCount,
+		Node:      minedBy,
+		Depth:     receivedEvent.Block.Depth + 1,
+		Consensus: consensus,
+	}
+}
+
+func (s *Simulation) ScheduleBlockMinedEvent(
+	minedBy *Node,
+	receivedEvent *Event,
+) {
+	block := ProduceBlock(minedBy, receivedEvent)
+	if block == nil {
+		logrus.Warnf("Miner (%d) can't produce a block in any available consensus layers.", minedBy.Id)
+		return
+	}
 
 	event := &Event{
-		Node:      minedBy,
 		EventType: BlockMinedEvent,
 
-		Block: &Block{
-			Id:    s.BlockCount,
-			Node:  minedBy,
-			Depth: receivedEvent.Block.Depth + 1,
-			Type:  blockType,
-		},
+		Block:         block,
 		PreviousBlock: receivedEvent.Block,
 
 		ScheduledAt: s.CurrentTime,
 	}
+	event.SetMiner(minedBy)
 
-	event.DispatchAt = s.GetNextMiningTime(event)
+	event.DispatchAt = block.Consensus.GetNextMiningTime(event)
 	event.Block.Transactions = s.GetTransactionsToInclude(event)
 
-	s.Nodes[minedBy].CurrentEvent = event
+	minedBy.Event = event
 	s.Events.Push(event)
+
 }
 
-func (s *Simulation) ScheduleBlockReceivedEvent(receivedBy int64, minedEvent *Event) {
-	event := &Event{
-		Node:      receivedBy,
+func (s *Simulation) ScheduleBlockReceivedEvent(receivedBy *Node, minedEvent *Event) {
+	e := &Event{
 		EventType: BlockReceivedEvent,
 
 		Block:         minedEvent.Block,
@@ -83,6 +78,7 @@ func (s *Simulation) ScheduleBlockReceivedEvent(receivedBy int64, minedEvent *Ev
 		ScheduledAt: s.CurrentTime,
 		DispatchAt:  s.GetNextReceivedTime(),
 	}
+	e.SetReceiver(receivedBy)
 
-	s.Events.Push(event)
+	s.Events.Push(e)
 }
