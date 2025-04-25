@@ -1,27 +1,23 @@
 package internal
 
 import (
-	"math"
-
 	"github.com/sirupsen/logrus"
 )
 
 func NewNode(s *Simulation) *Node {
-	capability := s.Random.LogNormal(AveragePowerUsage_Node_ProofOfWork)
-	efficiency := 1 - math.Pow(s.Random.Float(), 4)
-	logrus.Infof("Node capability: %f, Node efficiency: %f", capability, efficiency)
 
 	node := &Node{
 		Id:         int64(len(s.Nodes)),
 		Simulation: s,
 
-		Capability: capability,
-		Efficiency: efficiency,
-		Power:      capability,
-
 		Consensus: []Consensus{},
 	}
 
+	node.Power[ProofOfWork] = s.Random.LogNormal(AveragePowerUsage_Node_ProofOfWork)
+	node.Power[ProofOfBurn] = 0
+	// s.Random.LogNormal(AveragePowerUsage_Node_ProofOfBurn)
+
+	AddConsensus_RPoB(node)
 	AddConsensus_SPoB(node)
 	AddConsensus_PoW(node)
 
@@ -57,9 +53,7 @@ type Node struct {
 
 	Event *Event
 
-	Capability float64
-	Efficiency float64
-	Power      float64
+	Power [2]float64
 
 	Consensus []Consensus
 

@@ -93,7 +93,8 @@ func (s *Simulation) Simulate() {
 
 	for iteration := 0; s.CurrentTime < s.Configuration.SimulationTime; iteration++ {
 		if s.Events.Len() == 0 {
-			logrus.Fatal("blockchain stuck - no events available")
+			logrus.Error("blockchain stuck - no events available")
+			break
 		}
 		event := s.Events.Pop()
 

@@ -39,7 +39,7 @@ func (s *Statistics) OnBlockMined(simulation *Simulation, event *Event) {
 	s.BlockMiningTime[consensusType] += event.Duration()
 
 	s.PerNode[node].BlocksMined += 1
-	s.PerNode[node].PowerUsed += event.Duration() * simulation.Nodes[node].Capability
+	s.PerNode[node].PowerUsed += event.PowerUsed()
 	s.PerNode[node].TransactionsProcessed += event.Block.Transactions
 
 	s.PerNode[node].TimeMining += event.Duration()
@@ -48,7 +48,7 @@ func (s *Statistics) OnBlockMined(simulation *Simulation, event *Event) {
 
 func (s *Statistics) OnBlockAbandoned(simulation *Simulation, event *Event) {
 	node := event.Node.Id
-	s.PerNode[node].PowerUsed += event.Duration() * simulation.Nodes[node].Capability
+	s.PerNode[node].PowerUsed += event.PowerUsed()
 	s.PerNode[node].TimeMining += event.Duration()
 }
 

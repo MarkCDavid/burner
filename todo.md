@@ -28,7 +28,7 @@
       - Power per transaction decrease
       - Power per unit time unchanged
 
-  - Uncontrolled Burn:
+  - Uncontrolled Burn (done):
 
     - Proof of Work (periodic difficulty adjustment)
     - Proof of Burn (very low difficulty)

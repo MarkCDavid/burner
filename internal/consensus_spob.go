@@ -12,14 +12,14 @@ func AddConsensus_SPoB(node *Node) {
 
 		Node: node,
 
-		Ratio:      float64(1) / float64(configuration.Interval),
+		Ratio:      float64(1) / configuration.Interval,
 		Difficulty: float64(1),
 	})
 }
 
 type Consensus_SPoB_Configuration struct {
-	Enabled  bool  `yaml:"enabled"`
-	Interval int64 `yaml:"interval"`
+	Enabled  bool    `yaml:"enabled"`
+	Interval float64 `yaml:"interval"`
 }
 
 type Consensus_SPoB struct {
@@ -52,7 +52,7 @@ func (c *Consensus_SPoB) CanMine(receivedEvent *Event) bool {
 
 func (c *Consensus_SPoB) GetNextMiningTime(event *Event) float64 {
 	// Computing 1 hash takes barely any time.
-	return c.Node.Simulation.CurrentTime + 0.0001
+	return c.Node.Simulation.CurrentTime + 1
 }
 
 func (c *Consensus_SPoB) Synchronize(consensus Consensus) {

@@ -45,6 +45,10 @@ func (e *Event) Duration() float64 {
 	return e.Node.Simulation.CurrentTime - e.ScheduledAt
 }
 
+func (e *Event) PowerUsed() float64 {
+	return e.Duration() * e.Node.Power[e.Block.Consensus.GetType()]
+}
+
 func (e *Event) SetMiner(n *Node) {
 	e.Node = n
 	n.Event = e
