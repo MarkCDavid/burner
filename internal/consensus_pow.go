@@ -1,7 +1,5 @@
 package internal
 
-import "github.com/sirupsen/logrus"
-
 func AddConsensus_PoW(node *Node) {
 	configuration := node.Simulation.Configuration.ProofOfWork
 
@@ -79,17 +77,17 @@ func (c *Consensus_PoW) Adjust(event *Event) {
 	c.EpochTimeElapsed += event.Duration()
 
 	if c.EpochIndex >= c.EpochLength {
-		adjustment := (c.BlockFreqency * float64(c.EpochLength)) / c.EpochTimeElapsed
-		if adjustment > 4 {
-			adjustment = 4
+		deviation := (c.BlockFreqency * float64(c.EpochLength)) / c.EpochTimeElapsed
+		if deviation > 4 {
+			deviation = 4
 		}
-		if adjustment < 0.25 {
-			adjustment = 0.25
+		if deviation < 0.25 {
+			deviation = 0.25
 		}
 
-		logrus.Infof("Epoch Time: %f, Average Time: %f, Epoch Index: %d, Adjustment: %f", c.EpochTimeElapsed, c.EpochTimeElapsed/float64(c.EpochIndex), c.EpochIndex, adjustment)
+		// logrus.Infof("Epoch Time: %f, Average Time: %f, Epoch Index: %d, Adjustment: %f", c.EpochTimeElapsed, c.EpochTimeElapsed/float64(c.EpochIndex), c.EpochIndex, adjustment)
 
-		c.Difficulty *= adjustment
+		c.Difficulty *= deviation
 		c.EpochIndex = 0
 		c.EpochTimeElapsed = 0
 	}

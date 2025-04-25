@@ -15,5 +15,4 @@ proof_of_work:
 
 slimcoin_proof_of_burn:
   enabled: true
-  epoch_length: 1
-  average_block_frequency_in_seconds: 0.000001
+  interval: 3
