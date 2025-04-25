@@ -1,0 +1,49 @@
+
+INFO[2025-04-25T14:34:30+03:00] Total blocks mined: 109671                   
+INFO[2025-04-25T14:34:30+03:00] Total PoW blocks mined: 74243                
+INFO[2025-04-25T14:34:30+03:00] Total Slimcoin PoB blocks mined: 35428       
+INFO[2025-04-25T14:34:30+03:00]                                              
+INFO[2025-04-25T14:34:30+03:00] Total mining time: 51433967.093468           
+INFO[2025-04-25T14:34:30+03:00] Total PoW mining time: 51398653.074115       
+INFO[2025-04-25T14:34:30+03:00] Total Slimcoin PoB mining time: 35314.019353 
+INFO[2025-04-25T14:34:30+03:00]                                              
+INFO[2025-04-25T14:34:30+03:00] Average block mining time: 468.984208        
+INFO[2025-04-25T14:34:30+03:00] Average PoW block mining time: 692.303019    
+INFO[2025-04-25T14:34:30+03:00] Average Slimcoin PoB block mining time: 0.996783 
+INFO[2025-04-25T14:34:30+03:00]                                              
+INFO[2025-04-25T14:34:30+03:00] Average transactions per block: 1839.953205  
+INFO[2025-04-25T14:34:30+03:00] Simulation total transactions: 126491248     
+INFO[2025-04-25T14:34:30+03:00] Total processed transactions:  201789508     
+INFO[2025-04-25T14:34:30+03:00]                                              
+INFO[2025-04-25T14:34:30+03:00] Total power used: 622279358482592768.000000  
+INFO[2025-04-25T14:34:30+03:00]                                              
+INFO[2025-04-25T14:34:30+03:00] Power used per block: 5674055661775.608398   
+INFO[2025-04-25T14:34:30+03:00] Power used per transaction: 3083804329.819729 
+INFO[2025-04-25T14:34:30+03:00] Power used per second: 19678178751.372852    
+INFO[2025-04-25T14:34:30+03:00] bitcoin.Simulate() ran for 6m0.69591365s     
+INFO[2025-04-25T14:34:30+03:00] Memory Usage: 17 MiB | GC ran 16651 times    
+
+
+INFO[2025-04-25T14:42:30+03:00] Total blocks mined: 160098                   
+INFO[2025-04-25T14:42:30+03:00] Total PoW blocks mined: 128755               
+INFO[2025-04-25T14:42:30+03:00] Total Slimcoin PoB blocks mined: 31343       
+INFO[2025-04-25T14:42:30+03:00]                                              
+INFO[2025-04-25T14:42:30+03:00] Total mining time: 121663312.494769          
+INFO[2025-04-25T14:42:30+03:00] Total PoW mining time: 121631971.127243      
+INFO[2025-04-25T14:42:30+03:00] Total Slimcoin PoB mining time: 31341.367526 
+INFO[2025-04-25T14:42:30+03:00]                                              
+INFO[2025-04-25T14:42:30+03:00] Average block mining time: 759.930246        
+INFO[2025-04-25T14:42:30+03:00] Average PoW block mining time: 944.677652    
+INFO[2025-04-25T14:42:30+03:00] Average Slimcoin PoB block mining time: 0.999948 
+INFO[2025-04-25T14:42:30+03:00]                                              
+INFO[2025-04-25T14:42:30+03:00] Average transactions per block: 2150.874140  
+INFO[2025-04-25T14:42:30+03:00] Simulation total transactions: 126489600     
+INFO[2025-04-25T14:42:30+03:00] Total processed transactions:  344350648     
+INFO[2025-04-25T14:42:30+03:00]                                              
+INFO[2025-04-25T14:42:30+03:00] Total power used: 279213985450565408.000000  
+INFO[2025-04-25T14:42:30+03:00]                                              
+INFO[2025-04-25T14:42:30+03:00] Power used per block: 1744019197307.682861   
+INFO[2025-04-25T14:42:30+03:00] Power used per transaction: 810842050.311941 
+INFO[2025-04-25T14:42:30+03:00] Power used per second: 8829626612.388083     
+INFO[2025-04-25T14:42:30+03:00] slimcoin.Simulate() ran for 8m0.139884311s   
+INFO[2025-04-25T14:42:30+03:00] Memory Usage: 17 MiB | GC ran 36083 times

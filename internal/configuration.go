@@ -15,10 +15,20 @@ type Configuration struct {
 	ChainReogranizationThreshold   int64   `yaml:"chain_reorganization_threshold"`
 	AverageNetworkLatencyInSeconds float64 `yaml:"average_network_latency_in_seconds"`
 
-	ProofOfWork ProofOfBurnConfiguration `yaml:"proof_of_work"`
+	AverageTransactionsPerSecond int64 `yaml:"average_transactions_per_second"`
+	MaximumTransactionsPerBlock  int64 `yaml:"maximum_transaction_per_block"`
+
+	ProofOfWork         ProofOfWorkConfiguration         `yaml:"proof_of_work"`
+	SlimcoinProofOfBurn SlimcoinProofOfBurnConfiguration `yaml:"slimcoin_proof_of_burn"`
 }
 
-type ProofOfBurnConfiguration struct {
+type ProofOfWorkConfiguration struct {
+	Enabled                        bool    `yaml:"enabled"`
+	EpochLength                    int64   `yaml:"epoch_length"`
+	AverageBlockFrequencyInSeconds float64 `yaml:"average_block_frequency_in_seconds"`
+}
+
+type SlimcoinProofOfBurnConfiguration struct {
 	Enabled                        bool    `yaml:"enabled"`
 	EpochLength                    int64   `yaml:"epoch_length"`
 	AverageBlockFrequencyInSeconds float64 `yaml:"average_block_frequency_in_seconds"`

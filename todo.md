@@ -12,20 +12,16 @@
   - Node Power
   - Node Efficiency
 
-- Baseline
-
-  - Baseline Bitcoin simulator, simulates
-
 - Simulations:
 
-  - Baseline:
+  - Baseline (done):
 
     - Proof of Work (periodic difficulty adjustment)
 
-  - Simple Integration:
+  - Simple Integration (done):
 
     - Proof of Work (periodic difficulty adjustment)
-    - Proof of Burn (per block difficulty adjustment)
+    - Proof of Burn (per block difficulty adjustment) (must be after PoW)
     - Expectation:
       - If PoB cannot produce a block, it continues to mine PoW
       - Transactions per unit time increase

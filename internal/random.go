@@ -35,6 +35,10 @@ func (r *Rng) LogNormal(mean float64) float64 {
 	return math.Exp(math.Log(mean) + r.Float() - 0.5)
 }
 
+func (r *Rng) Chance(chance float64) bool {
+	return r.Float() < chance
+}
+
 func (r *Rng) Float() float64 {
 	return 1.0 - r._rng.Float64()
 }
