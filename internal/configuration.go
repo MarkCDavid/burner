@@ -7,16 +7,21 @@ import (
 )
 
 type Configuration struct {
-	NodeCount      int     `yaml:"node_count"`
+	Seed *int64 `yaml:"seed"`
+
+	NodeCount      int64   `yaml:"node_count"`
 	SimulationTime float64 `yaml:"simulation_time_in_seconds"`
 
-	AverageNetworkLatencyInSeconds int `yaml:"average_network_latency_in_seconds"`
-	InverseAverageNetworkLatency   float64
+	ChainReogranizationThreshold   int64   `yaml:"chain_reorganization_threshold"`
+	AverageNetworkLatencyInSeconds float64 `yaml:"average_network_latency_in_seconds"`
 
-	AverageBlockFrequencyInSeconds int `yaml:"average_block_frequency_in_seconds"`
-	InverseAverageBlockFrequency   float64
+	ProofOfWork ProofOfBurnConfiguration `yaml:"proof_of_work"`
+}
 
-	ChainReogranizationThreshold int `yaml:"chain_reorganization_threshold"`
+type ProofOfBurnConfiguration struct {
+	Enabled                        bool    `yaml:"enabled"`
+	EpochLength                    int64   `yaml:"epoch_length"`
+	AverageBlockFrequencyInSeconds float64 `yaml:"average_block_frequency_in_seconds"`
 }
 
 func mustLoadConfiguration(configuarionPath string) Configuration {
@@ -32,10 +37,6 @@ func mustLoadConfiguration(configuarionPath string) Configuration {
 	if err != nil {
 		panic(err)
 	}
-
-	configuration.InverseAverageNetworkLatency = 1.0 / float64(configuration.AverageNetworkLatencyInSeconds)
-
-	configuration.InverseAverageBlockFrequency = 1.0 / (float64(configuration.AverageBlockFrequencyInSeconds) * float64(configuration.NodeCount))
 
 	return configuration
 }

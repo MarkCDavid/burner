@@ -1,8 +1,11 @@
 package internal
 
 func (s *Simulation) HandleBlockMinedEvent(event *Event) {
-	s.ScheduleBlockMinedEvent(event.Node, event.Block, event.Depth+1)
-	for currentNode := 0; currentNode < len(s.Nodes); currentNode += 1 {
+	s.Statistics.OnBlockMined(event)
+	s.Nodes[event.Node].Difficulty[event.Block.Type].Adjust(event)
+
+	s.ScheduleBlockMinedEvent(event.Node, event)
+	for currentNode := int64(0); currentNode < int64(len(s.Nodes)); currentNode += 1 {
 		if currentNode != event.Node {
 			s.ScheduleBlockReceivedEvent(currentNode, event)
 		}
@@ -12,18 +15,20 @@ func (s *Simulation) HandleBlockMinedEvent(event *Event) {
 func (s *Simulation) HandleBlockReceivedEvent(event *Event) {
 	miningEvent := s.Nodes[event.Node].CurrentEvent
 
-	if miningEvent.PreviousBlock == event.PreviousBlock {
+	if miningEvent.PreviousBlock.Id == event.PreviousBlock.Id {
+		// s.Nodes[event.Node].Difficulty[event.Block.Type].Update(s.Nodes[event.Block.Node].Difficulty[event.Block.Type])
 		s.Events.Remove(miningEvent)
-		s.ScheduleBlockMinedEvent(event.Node, event.Block, event.Depth+1)
+		s.ScheduleBlockMinedEvent(event.Node, event)
 		return
 	}
 
-	chainReorganizationThreshold := miningEvent.Depth + s.Configuration.ChainReogranizationThreshold
-	deepEnoughForChainReorganization := chainReorganizationThreshold <= event.Depth
+	chainReorganizationThreshold := miningEvent.Block.Depth + s.Configuration.ChainReogranizationThreshold
+	deepEnoughForChainReorganization := chainReorganizationThreshold <= event.Block.Depth
 
 	if deepEnoughForChainReorganization {
+		// s.Nodes[event.Node].Difficulty[event.Block.Type].Update(s.Nodes[event.Block.Node].Difficulty[event.Block.Type])
 		s.Events.Remove(miningEvent)
-		s.ScheduleBlockMinedEvent(event.Node, event.Block, event.Depth+1)
+		s.ScheduleBlockMinedEvent(event.Node, event)
 		return
 	}
 }
