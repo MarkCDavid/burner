@@ -11,15 +11,14 @@ type Rng struct {
 	_seed int64
 }
 
-func CreateRandom(seed *int64) *Rng {
-	if seed == nil {
-		_seed := time.Now().UnixNano()
-		seed = &_seed
+func CreateRandom(seed int64) *Rng {
+	if seed == 0 {
+		seed = time.Now().UnixNano()
 	}
 
 	return &Rng{
-		_rng:  rand.New(rand.NewSource(*seed)),
-		_seed: *seed,
+		_rng:  rand.New(rand.NewSource(seed)),
+		_seed: seed,
 	}
 }
 
