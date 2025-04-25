@@ -1,7 +1,8 @@
 package internal
 
-func (s *Simulation) GetNextMiningTime() float64 {
-	return s.CurrentTime + s.Random.Expovariate(s.Configuration.InverseAverageBlockFrequency)
+func (s *Simulation) GetNextMiningTime(event *Event) float64 {
+	lambda := s.Nodes[event.Node].Difficulty[event.Block.Type].GetLambda(s.Nodes[event.Node].Power)
+	return s.CurrentTime + s.Random.Expovariate(lambda)
 }
 
 func (s *Simulation) GetNextReceivedTime() float64 {
@@ -9,39 +10,43 @@ func (s *Simulation) GetNextReceivedTime() float64 {
 		return s.CurrentTime
 	}
 
-	return s.CurrentTime + s.Random.Expovariate(s.Configuration.InverseAverageNetworkLatency)
+	return s.CurrentTime + s.Random.Expovariate(1.0/float64(s.Configuration.AverageNetworkLatencyInSeconds))
 }
 
 func (s *Simulation) ScheduleBlockMinedEvent(
-	minedBy int,
-	previousBlock int,
-	depth int,
+	minedBy int64,
+	receivedEvent *Event,
 ) {
 	s.BlockCount += 1
+
 	event := &Event{
 		Node:      minedBy,
 		EventType: BlockMinedEvent,
 
-		Block:         s.BlockCount,
-		PreviousBlock: previousBlock,
-		Depth:         depth,
+		Block: &Block{
+			Id:    s.BlockCount,
+			Node:  minedBy,
+			Depth: receivedEvent.Block.Depth + 1,
+			Type:  ProofOfWork,
+		},
+		PreviousBlock: receivedEvent.Block,
 
 		ScheduledAt: s.CurrentTime,
-		DispatchAt:  s.GetNextMiningTime(),
 	}
+
+	event.DispatchAt = s.GetNextMiningTime(event)
 
 	s.Nodes[minedBy].CurrentEvent = event
 	s.Events.Push(event)
 }
 
-func (s *Simulation) ScheduleBlockReceivedEvent(receivedBy int, minedEvent *Event) {
+func (s *Simulation) ScheduleBlockReceivedEvent(receivedBy int64, minedEvent *Event) {
 	event := &Event{
 		Node:      receivedBy,
 		EventType: BlockReceivedEvent,
 
 		Block:         minedEvent.Block,
 		PreviousBlock: minedEvent.PreviousBlock,
-		Depth:         minedEvent.Depth,
 
 		ScheduledAt: s.CurrentTime,
 		DispatchAt:  s.GetNextReceivedTime(),

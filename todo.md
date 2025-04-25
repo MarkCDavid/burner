@@ -4,13 +4,13 @@
 
   - Adjustable difficulty:
 
-    - Bitcoin: Discrete steps
-    - PoB: Continuous
+    - PoW: Discrete Steps every 2016 blocks
+    - PoB:
+      - Discrete Steps every N blocks
+      - Price Adjustment every M blocks
 
-  - Nodes joining/leaving the network
-  - Node capabilities
-  - Node efficiency
-  - PoB - attempt how often
+  - Node Power
+  - Node Efficiency
 
 - Baseline
 

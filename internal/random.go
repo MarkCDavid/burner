@@ -28,9 +28,17 @@ func (r *Rng) GetSeed() int64 {
 }
 
 func (r *Rng) Expovariate(lambda float64) float64 {
-	return -math.Log(1.0-r.float()) / lambda
+	return -math.Log(1.0-r.Float()) / lambda
 }
 
-func (r *Rng) float() float64 {
+func (r *Rng) LogNormal(mean float64) float64 {
+	return math.Exp(math.Log(mean) + r.Float() - 0.5)
+}
+
+func (r *Rng) Float() float64 {
 	return 1.0 - r._rng.Float64()
+}
+
+func (r *Rng) int(min int64, max int64) int64 {
+	return min + (r._rng.Int63n(max) - min)
 }
