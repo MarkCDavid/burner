@@ -9,6 +9,7 @@ import (
 func NewNode(s *Simulation) *Node {
 	capability := s.Random.LogNormal(AveragePowerUsage_Node_ProofOfWork)
 	efficiency := 1 - math.Pow(s.Random.Float(), 4)
+	logrus.Infof("Node capability: %f, Node efficiency: %f", capability, efficiency)
 
 	node := &Node{
 		Id:         int64(len(s.Nodes)),

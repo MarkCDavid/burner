@@ -71,6 +71,9 @@ func (s *Simulation) GetCurrentTransactionCount() int64 {
 }
 
 func (s *Simulation) Simulate() {
+
+	logrus.Infof("=================")
+	logrus.Infof("Simulation seed: %d", s.Random.GetSeed())
 	s.InitializeNodes()
 
 	initialEvent := &Event{
@@ -106,6 +109,8 @@ func (s *Simulation) Simulate() {
 
 	s.ProgressBar.Finish()
 
+	logrus.Infof("Simulation ran for: %f", s.CurrentTime)
+
 	logrus.Infof("Total blocks mined: %d", s.Statistics.GetTotalBlocks())
 	logrus.Infof("Total PoW blocks mined: %d", s.Statistics.BlocksMined[ProofOfWork])
 	logrus.Infof("Total Slimcoin PoB blocks mined: %d", s.Statistics.BlocksMined[ProofOfBurn])
@@ -126,10 +131,11 @@ func (s *Simulation) Simulate() {
 	logrus.Infof("Average transactions per block: %f", s.Statistics.GetAverageTransactionsPerBlock())
 	logrus.Infof("Simulation total transactions: %d", s.GetCurrentTransactionCount())
 	logrus.Infof("Total processed transactions:  %d", s.Statistics.GetTotalTransactions())
+	logrus.Infof("Transactions per second:  %f", float64(s.Statistics.GetTotalTransactions())/s.CurrentTime)
 	logrus.Info()
 	logrus.Infof("Total power used: %f", s.Statistics.GetTotalPowerUsed())
 	logrus.Info()
 	logrus.Infof("Power used per block: %f", s.Statistics.GetTotalPowerUsed()/float64(s.Statistics.GetTotalBlocks()))
 	logrus.Infof("Power used per transaction: %f", s.Statistics.GetTotalPowerUsed()/float64(s.Statistics.GetTotalTransactions()))
-	logrus.Infof("Power used per second: %f", s.Statistics.GetTotalPowerUsed()/float64(s.CurrentTime))
+	logrus.Infof("Power used per second: %f", s.Statistics.GetTotalPowerUsed()/s.CurrentTime)
 }

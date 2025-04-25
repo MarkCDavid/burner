@@ -42,7 +42,7 @@ func (e *Event) ToString() string {
 }
 
 func (e *Event) Duration() float64 {
-	return e.DispatchAt - e.ScheduledAt
+	return e.Node.Simulation.CurrentTime - e.ScheduledAt
 }
 
 func (e *Event) SetMiner(n *Node) {
