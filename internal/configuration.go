@@ -18,20 +18,8 @@ type Configuration struct {
 	AverageTransactionsPerSecond int64 `yaml:"average_transactions_per_second"`
 	MaximumTransactionsPerBlock  int64 `yaml:"maximum_transaction_per_block"`
 
-	ProofOfWork         ProofOfWorkConfiguration         `yaml:"proof_of_work"`
-	SlimcoinProofOfBurn SlimcoinProofOfBurnConfiguration `yaml:"slimcoin_proof_of_burn"`
-}
-
-type ProofOfWorkConfiguration struct {
-	Enabled                        bool    `yaml:"enabled"`
-	EpochLength                    int64   `yaml:"epoch_length"`
-	AverageBlockFrequencyInSeconds float64 `yaml:"average_block_frequency_in_seconds"`
-}
-
-type SlimcoinProofOfBurnConfiguration struct {
-	Enabled                        bool    `yaml:"enabled"`
-	EpochLength                    int64   `yaml:"epoch_length"`
-	AverageBlockFrequencyInSeconds float64 `yaml:"average_block_frequency_in_seconds"`
+	ProofOfWork         Consensus_PoW_Configuration  `yaml:"proof_of_work"`
+	SlimcoinProofOfBurn Consensus_SPoB_Configuration `yaml:"slimcoin_proof_of_burn"`
 }
 
 func mustLoadConfiguration(configuarionPath string) Configuration {

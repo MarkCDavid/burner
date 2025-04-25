@@ -2,38 +2,40 @@ package internal
 
 func (s *Simulation) HandleBlockMinedEvent(event *Event) {
 	s.Statistics.OnBlockMined(s, event)
-	s.Nodes[event.Node].Difficulty[event.Block.Type].Adjust(event)
-	s.Nodes[event.Node].Transactions += event.Block.Transactions
+
+	event.Block.Consensus.Adjust(event)
+	event.Node.Transactions += event.Block.Transactions
 
 	s.ScheduleBlockMinedEvent(event.Node, event)
-	for currentNode := int64(0); currentNode < int64(len(s.Nodes)); currentNode += 1 {
-		if currentNode != event.Node {
-			s.ScheduleBlockReceivedEvent(currentNode, event)
+
+	for _, node := range s.Nodes {
+		if node != event.Node {
+			s.ScheduleBlockReceivedEvent(node, event)
 		}
 	}
 }
 
 func (s *Simulation) HandleBlockReceivedEvent(event *Event) {
-	miningEvent := s.Nodes[event.Node].CurrentEvent
-
-	if miningEvent.PreviousBlock.Id == event.PreviousBlock.Id {
-		s.Nodes[event.Node].Difficulty[event.Block.Type].Update(s.Nodes[event.Block.Node].Difficulty[event.Block.Type])
-		s.Nodes[event.Node].Transactions = s.Nodes[event.Block.Node].Transactions
-		s.Statistics.OnBlockAbandoned(s, miningEvent)
-		s.Events.Remove(miningEvent)
-		s.ScheduleBlockMinedEvent(event.Node, event)
+	if event.Node.Event.PreviousBlock.Id == event.PreviousBlock.Id {
+		s.Reorganize(event)
 		return
 	}
 
-	chainReorganizationThreshold := miningEvent.Block.Depth + s.Configuration.ChainReogranizationThreshold
-	deepEnoughForChainReorganization := chainReorganizationThreshold <= event.Block.Depth
+	reorganizationThreshold := event.Node.Event.Block.Depth + s.Configuration.ChainReogranizationThreshold
+	deepEnough := reorganizationThreshold <= event.Block.Depth
 
-	if deepEnoughForChainReorganization {
-		s.Nodes[event.Node].Difficulty[event.Block.Type].Update(s.Nodes[event.Block.Node].Difficulty[event.Block.Type])
-		s.Nodes[event.Node].Transactions = s.Nodes[event.Block.Node].Transactions
-		s.Statistics.OnBlockAbandoned(s, miningEvent)
-		s.Events.Remove(miningEvent)
-		s.ScheduleBlockMinedEvent(event.Node, event)
+	if deepEnough {
+		s.Reorganize(event)
 		return
 	}
+}
+
+func (s *Simulation) Reorganize(event *Event) {
+	event.Node.SynchronizeConsensus(event.Block.Node)
+	event.Node.Transactions = event.Block.Node.Transactions
+
+	s.Statistics.OnBlockAbandoned(s, event.Node.Event)
+	s.Events.Remove(event.Node.Event)
+
+	s.ScheduleBlockMinedEvent(event.Node, event)
 }
