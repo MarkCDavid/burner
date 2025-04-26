@@ -2,7 +2,7 @@
 seed: 2
 
 node_count: 20
-simulation_time_in_seconds: 3162240
+simulation_time_in_seconds: 316224000
 
 average_network_latency_in_seconds: 6
 chain_reorganization_threshold: 6
@@ -19,5 +19,18 @@ slimcoin_proof_of_burn:
   enabled: false
 
 razer_proof_of_burn:
+  enabled: false
+
+pricing_proof_of_burn:
   enabled: true
-  interval: 0.25
+
+  average_block_frequency_in_seconds: 600
+
+  participation_percentage: 0.2
+
+  difficulty_epoch_length: 2016
+  price_epoch_length: 1025
+  burn_epoch_length: 1207
+
+  settled_period: 17
+  working_period: 1503

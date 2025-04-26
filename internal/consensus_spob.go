@@ -37,7 +37,7 @@ func (c *Consensus_SPoB) GetType() ConsensusType {
 	return ProofOfBurn
 }
 
-func (c *Consensus_SPoB) CanMine(receivedEvent *Event) bool {
+func (c *Consensus_SPoB) CanMine(receivedEvent *Event_BlockReceived) bool {
 	if !c.Enabled {
 		return false
 	}
@@ -50,7 +50,7 @@ func (c *Consensus_SPoB) CanMine(receivedEvent *Event) bool {
 	return c.Node.Simulation.Random.Chance(chance)
 }
 
-func (c *Consensus_SPoB) GetNextMiningTime(event *Event) float64 {
+func (c *Consensus_SPoB) GetNextMiningTime(event *Event_BlockMined) float64 {
 	// Computing 1 hash takes barely any time.
 	return c.Node.Simulation.CurrentTime + 1
 }
@@ -62,9 +62,13 @@ func (c *Consensus_SPoB) Synchronize(consensus Consensus) {
 	}
 }
 
-func (c *Consensus_SPoB) Adjust(event *Event) {
-	powBlocksMined := event.Node.Simulation.Statistics.BlocksMined[ProofOfWork]
-	pobBlocksMined := event.Node.Simulation.Statistics.BlocksMined[ProofOfBurn]
+func (c *Consensus_SPoB) Adjust(event *Event_BlockMined) {
+	if event.Block.Consensus.GetType() != c.GetType() {
+		return
+	}
+
+	powBlocksMined := event.MinedBy.Simulation.Statistics.BlocksMined[ProofOfWork]
+	pobBlocksMined := event.MinedBy.Simulation.Statistics.BlocksMined[ProofOfBurn]
 
 	actualRatio := float64(pobBlocksMined) / float64(powBlocksMined)
 	deviation := actualRatio / c.Ratio

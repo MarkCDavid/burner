@@ -37,7 +37,7 @@
       - Very little transactions per block
       - Energy consumption similar to PoW
 
-  - Pure Burn:
+  - Pure Burn (done):
 
     - Proof of Burn (per block difficulty adjustment)
     - Expectation:

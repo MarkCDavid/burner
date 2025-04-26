@@ -14,9 +14,9 @@ func NewNode(s *Simulation) *Node {
 	}
 
 	node.Power[ProofOfWork] = s.Random.LogNormal(AveragePowerUsage_Node_ProofOfWork)
-	node.Power[ProofOfBurn] = 0
-	// s.Random.LogNormal(AveragePowerUsage_Node_ProofOfBurn)
+	node.Power[ProofOfBurn] = s.Random.LogNormal(AveragePowerUsage_Node_ProofOfBurn)
 
+	// AddConsensus_PPoB(node)
 	AddConsensus_RPoB(node)
 	AddConsensus_SPoB(node)
 	AddConsensus_PoW(node)
@@ -51,7 +51,7 @@ type Node struct {
 
 	Simulation *Simulation
 
-	Event *Event
+	Event *Event_BlockMined
 
 	Power [2]float64
 
@@ -60,9 +60,9 @@ type Node struct {
 	Transactions int64
 }
 
-func (n *Node) GetConsensus(receivedEvent *Event) Consensus {
+func (n *Node) GetConsensus(event *Event_BlockReceived) Consensus {
 	for _, consensus := range n.Consensus {
-		if consensus.CanMine(receivedEvent) {
+		if consensus.CanMine(event) {
 			return consensus
 		}
 	}
