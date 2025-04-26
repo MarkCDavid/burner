@@ -21,7 +21,7 @@ type Configuration struct {
 	ProofOfWork         Consensus_PoW_Configuration  `yaml:"proof_of_work"`
 	SlimcoinProofOfBurn Consensus_SPoB_Configuration `yaml:"slimcoin_proof_of_burn"`
 	RazerProofOfBurn    Consensus_RPoB_Configuration `yaml:"razer_proof_of_burn"`
-	// PricingProofOfBurn  Consensus_PPoB_Configuration `yaml:"pricing_proof_of_burn"`
+	PricingProofOfBurn  Consensus_PPoB_Configuration `yaml:"pricing_proof_of_burn"`
 }
 
 func mustLoadConfiguration(configuarionPath string) Configuration {

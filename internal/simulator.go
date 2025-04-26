@@ -60,8 +60,12 @@ func (s *Simulation) InitializeNodes() {
 	}
 
 	for _, node := range s.Nodes {
-		for _, consensus := range node.Consensus {
-			consensus.Initialize()
+		if node.ProofOfWork != nil {
+			node.ProofOfWork.Initialize()
+		}
+
+		if node.ProofOfBurn != nil {
+			node.ProofOfBurn.Initialize()
 		}
 	}
 }
@@ -76,19 +80,23 @@ func (s *Simulation) Simulate() {
 	logrus.Infof("Simulation seed: %d", s.Random.GetSeed())
 	s.InitializeNodes()
 
-	initialEvent := &Event_BlockReceived{
-		ReceivedBy: nil,
-		Block: &Block{
-			Id:        0,
-			Node:      nil,
-			Depth:     0,
-			Consensus: &Consensus_Genesis{},
-		},
-		PreviousBlock: nil,
+	genesisBlock := &Block{
+		Id:        0,
+		Node:      nil,
+		Depth:     0,
+		Consensus: &Consensus_Genesis{},
+	}
+	for _, node := range s.Nodes {
+		(&Event_BlockReceived{
+			Simulation:    s,
+			ReceivedBy:    node,
+			Block:         genesisBlock,
+			PreviousBlock: nil,
+		}).Handle()
 	}
 
-	for _, node := range s.Nodes {
-		s.ScheduleBlockMinedEvent(node, initialEvent)
+	if s.Configuration.PricingProofOfBurn.Enabled {
+		s.ScheduleEmitRandomEvent(0, 60)
 	}
 
 	for iteration := 0; s.CurrentTime < s.Configuration.SimulationTime; iteration++ {

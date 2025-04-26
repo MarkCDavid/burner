@@ -1,5 +1,7 @@
 package internal
 
+import "github.com/sirupsen/logrus"
+
 func AddConsensus_PoW(node *Node) {
 	configuration := node.Simulation.Configuration.ProofOfWork
 
@@ -7,17 +9,23 @@ func AddConsensus_PoW(node *Node) {
 		return
 	}
 
-	node.Consensus = append(node.Consensus, &Consensus_PoW{
+	if node.ProofOfWork != nil {
+		logrus.Fatal("Multiple Proof of Work layers enabled.")
+	}
+
+	node.ProofOfWork = &Consensus_PoW{
 		Enabled: configuration.Enabled,
 
 		Node: node,
+
+		Power: node.Simulation.Random.LogNormal(AveragePowerUsage_Node_ProofOfWork),
 
 		EpochIndex:       0,
 		EpochLength:      configuration.EpochLength,
 		BlockFreqency:    configuration.AverageBlockFrequencyInSeconds,
 		EpochTimeElapsed: 0,
 		Difficulty:       1,
-	})
+	}
 }
 
 type Consensus_PoW_Configuration struct {
@@ -31,6 +39,8 @@ type Consensus_PoW struct {
 
 	Node *Node
 
+	Power float64
+
 	EpochLength int64
 
 	EpochIndex       int64
@@ -43,7 +53,7 @@ type Consensus_PoW struct {
 
 func (c *Consensus_PoW) Initialize() {
 	for _, node := range c.Node.Simulation.Nodes {
-		c.Difficulty += node.Power[ProofOfWork]
+		c.Difficulty += node.ProofOfWork.GetPower()
 	}
 }
 
@@ -51,12 +61,16 @@ func (c *Consensus_PoW) GetType() ConsensusType {
 	return ProofOfWork
 }
 
-func (c *Consensus_PoW) CanMine(receivedEvent *Event_BlockReceived) bool {
+func (c *Consensus_PoW) GetPower() float64 {
+	return c.Power
+}
+
+func (c *Consensus_PoW) CanMine(event Event) bool {
 	return c.Enabled
 }
 
 func (c *Consensus_PoW) GetNextMiningTime(event *Event_BlockMined) float64 {
-	lambda := c.Node.Power[ProofOfWork] / (c.BlockFreqency * c.Difficulty)
+	lambda := c.Node.ProofOfWork.GetPower() / (c.BlockFreqency * c.Difficulty)
 	return c.Node.Simulation.CurrentTime + c.Node.Simulation.Random.Expovariate(lambda)
 }
 
@@ -75,8 +89,13 @@ func (c *Consensus_PoW) Set(difficulty float64) {
 	c.Difficulty = difficulty
 }
 
-func (c *Consensus_PoW) Adjust(event *Event_BlockMined) {
-	if event.Block.Consensus.GetType() != c.GetType() {
+func (c *Consensus_PoW) Adjust(event Event) {
+	blockMinedEvent, ok := event.(*Event_BlockMined)
+	if !ok {
+		panic("not a proof of work difficulty")
+	}
+
+	if blockMinedEvent.Block.Consensus.GetType() != c.GetType() {
 		return
 	}
 

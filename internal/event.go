@@ -24,6 +24,8 @@ type Block struct {
 	Id           int64
 	Node         *Node
 	Depth        int64
+	StartedAt    float64
+	FinishedAt   float64
 	Transactions int64
 	Consensus    Consensus
 }

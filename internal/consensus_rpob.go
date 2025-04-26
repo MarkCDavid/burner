@@ -1,5 +1,7 @@
 package internal
 
+import "github.com/sirupsen/logrus"
+
 func AddConsensus_RPoB(node *Node) {
 	configuration := node.Simulation.Configuration.RazerProofOfBurn
 
@@ -7,14 +9,20 @@ func AddConsensus_RPoB(node *Node) {
 		return
 	}
 
-	node.Consensus = append(node.Consensus, &Consensus_RPoB{
+	if node.ProofOfBurn != nil {
+		logrus.Fatal("Multiple Proof of Burn layers enabled.")
+	}
+
+	node.ProofOfBurn = &Consensus_RPoB{
 		Enabled: configuration.Enabled,
+
+		Power: node.Simulation.Random.LogNormal(AveragePowerUsage_Node_ProofOfBurn),
 
 		Node: node,
 
 		Interval:   configuration.Interval,
 		Difficulty: float64(1),
-	})
+	}
 }
 
 type Consensus_RPoB_Configuration struct {
@@ -27,19 +35,25 @@ type Consensus_RPoB struct {
 
 	Node *Node
 
+	Power float64
+
 	Interval   float64
 	Difficulty float64
-}
-
-func (c *Consensus_RPoB) Initialize() {
-	c.Difficulty = c.Interval * float64(len(c.Node.Simulation.Nodes))
 }
 
 func (c *Consensus_RPoB) GetType() ConsensusType {
 	return ProofOfBurn
 }
 
-func (c *Consensus_RPoB) CanMine(receivedEvent *Event_BlockReceived) bool {
+func (c *Consensus_RPoB) GetPower() float64 {
+	return c.Power
+}
+
+func (c *Consensus_RPoB) Initialize() {
+	c.Difficulty = c.Interval * float64(len(c.Node.Simulation.Nodes))
+}
+
+func (c *Consensus_RPoB) CanMine(event Event) bool {
 	if !c.Enabled {
 		return false
 	}
@@ -63,6 +77,5 @@ func (c *Consensus_RPoB) Synchronize(consensus Consensus) {
 	}
 }
 
-func (c *Consensus_RPoB) Adjust(event *Event_BlockMined) {
-
+func (c *Consensus_RPoB) Adjust(event Event) {
 }

@@ -13,10 +13,6 @@ type Event_BlockReceived struct {
 	Index int
 }
 
-func (e *Event_BlockReceived) SetReceiver(n *Node) {
-	e.ReceivedBy = n
-}
-
 func (event *Event_BlockReceived) Handle() {
 	if event.ReceivedBy.Event == nil {
 		event.Reorganize()
@@ -37,19 +33,27 @@ func (event *Event_BlockReceived) Handle() {
 	}
 }
 
-// TODO: Work on me please
 func (event *Event_BlockReceived) Reorganize() {
-	if event.ReceivedBy != event.Block.Node {
+	if event.Block.Node != nil && event.ReceivedBy != event.Block.Node {
 		event.ReceivedBy.SynchronizeConsensus(event.Block.Node)
 		event.ReceivedBy.Transactions = event.Block.Node.Transactions
 
 		if event.ReceivedBy.Event != nil {
+
+			event.ReceivedBy.Event.Block.FinishedAt = event.ReceivedBy.Simulation.CurrentTime
 			event.ReceivedBy.Simulation.Statistics.OnBlockAbandoned(event.Simulation, event.ReceivedBy.Event)
 			event.Simulation.Events.Remove(event.ReceivedBy.Event)
 		}
 	}
 
-	event.Simulation.ScheduleBlockMinedEvent(event.ReceivedBy, event)
+	event.ReceivedBy.PreviousBlock = event.Block
+
+	if event.ReceivedBy.ProofOfBurn != nil {
+		event.ReceivedBy.ProofOfBurn.Adjust(event)
+	}
+
+	block := event.ReceivedBy.ProduceBlock(event)
+	event.Simulation.ScheduleBlockMinedEvent(event.ReceivedBy, block)
 }
 
 func (s *Simulation) GetNextReceivedTime() float64 {
@@ -60,36 +64,38 @@ func (s *Simulation) GetNextReceivedTime() float64 {
 	return s.CurrentTime + s.Random.Expovariate(1.0/float64(s.Configuration.AverageNetworkLatencyInSeconds))
 }
 
-func (s *Simulation) ScheduleBlockReceivedEvent(receivedBy *Node, event *Event_BlockMined) {
+func (simulation *Simulation) ScheduleBlockReceivedEvent(receivedBy *Node, event *Event_BlockMined) {
 	receivedTime := event.EventTime()
 	if receivedBy != event.MinedBy {
-		receivedTime = s.GetNextReceivedTime()
+		receivedTime = simulation.GetNextReceivedTime()
 	}
 
 	e := &Event_BlockReceived{
-		Simulation:    s,
+		Simulation: simulation,
+
+		ReceivedBy: receivedBy,
+
 		Block:         event.Block,
 		PreviousBlock: event.PreviousBlock,
 
-		ScheduledAt: s.CurrentTime,
+		ScheduledAt: simulation.CurrentTime,
 		DispatchAt:  receivedTime,
 	}
-	e.SetReceiver(receivedBy)
-	s.Events.Push(e)
+	simulation.Events.Push(e)
 }
 
 func (e *Event_BlockReceived) Duration() float64 {
-	return e.Simulation.CurrentTime - e.ScheduledAt
+	return e.DispatchAt - e.ScheduledAt
 }
 
-func (event *Event_BlockReceived) GetIndex() int {
-	return event.Index
+func (e *Event_BlockReceived) GetIndex() int {
+	return e.Index
 }
 
-func (event *Event_BlockReceived) SetIndex(index int) {
-	event.Index = index
+func (e *Event_BlockReceived) SetIndex(index int) {
+	e.Index = index
 }
 
-func (event *Event_BlockReceived) EventTime() float64 {
-	return event.DispatchAt
+func (e *Event_BlockReceived) EventTime() float64 {
+	return e.DispatchAt
 }

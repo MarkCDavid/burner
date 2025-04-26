@@ -1,48 +1,27 @@
 package internal
 
-import (
-	"github.com/sirupsen/logrus"
-)
-
-func NewNode(s *Simulation) *Node {
+func NewNode(simulation *Simulation) *Node {
 
 	node := &Node{
-		Id:         int64(len(s.Nodes)),
-		Simulation: s,
-
-		Consensus: []Consensus{},
+		Id:         int64(len(simulation.Nodes)),
+		Simulation: simulation,
 	}
 
-	node.Power[ProofOfWork] = s.Random.LogNormal(AveragePowerUsage_Node_ProofOfWork)
-	node.Power[ProofOfBurn] = s.Random.LogNormal(AveragePowerUsage_Node_ProofOfBurn)
-
-	// AddConsensus_PPoB(node)
+	AddConsensus_PPoB(node)
 	AddConsensus_RPoB(node)
 	AddConsensus_SPoB(node)
 	AddConsensus_PoW(node)
 
-	node.EnsureConsensusLayerCount("Proof of Work", ProofOfWork)
-	node.EnsureConsensusLayerCount("Proof of Burn", ProofOfBurn)
-
 	return node
 }
 
-func (n *Node) EnsureConsensusLayerCount(name string, consensusType ConsensusType) {
-	total := 0
-	for _, consensus := range n.Consensus {
-		if consensus.GetType() == consensusType {
-			total++
-		}
-	}
-
-	if total > 1 {
-		logrus.Fatalf("Too many %s consensus layers enabled (%d).", name, total)
-	}
-}
-
 func (to *Node) SynchronizeConsensus(from *Node) {
-	for consensusIndex := 0; consensusIndex < len(to.Consensus); consensusIndex++ {
-		to.Consensus[consensusIndex].Synchronize(from.Consensus[consensusIndex])
+	if to.ProofOfWork != nil {
+		to.ProofOfWork.Synchronize(from.ProofOfWork)
+	}
+
+	if to.ProofOfBurn != nil {
+		to.ProofOfBurn.Synchronize(from.ProofOfBurn)
 	}
 }
 
@@ -51,21 +30,23 @@ type Node struct {
 
 	Simulation *Simulation
 
-	Event *Event_BlockMined
+	Event         *Event_BlockMined
+	PreviousBlock *Block
 
-	Power [2]float64
-
-	Consensus []Consensus
+	ProofOfWork Consensus
+	ProofOfBurn Consensus
 
 	Transactions int64
 }
 
 func (n *Node) GetConsensus(event *Event_BlockReceived) Consensus {
-	for _, consensus := range n.Consensus {
-		if consensus.CanMine(event) {
-			return consensus
-		}
+	if n.ProofOfWork != nil && n.ProofOfWork.CanMine(event) {
+		return n.ProofOfWork
 	}
-	return nil
 
+	if n.ProofOfBurn != nil && n.ProofOfBurn.CanMine(event) {
+		return n.ProofOfBurn
+	}
+
+	return nil
 }

@@ -28,9 +28,13 @@ var simulationCmd = &cobra.Command{
 		internal.TimeFunction(solo_razer.Simulate, "solo_razer.Simulate()")
 		internal.PrintMemoryUsage()
 
-		// pricing := internal.NewSimulation("./configuration/pricing.yaml")
-		// internal.TimeFunction(pricing.Simulate, "pricing.Simulate()")
-		// internal.PrintMemoryUsage()
+		pricing := internal.NewSimulation("./configuration/pricing.yaml")
+		internal.TimeFunction(pricing.Simulate, "pricing.Simulate()")
+		internal.PrintMemoryUsage()
+
+		purity := internal.NewSimulation("./configuration/purity.yaml")
+		internal.TimeFunction(purity.Simulate, "purity.Simulate()")
+		internal.PrintMemoryUsage()
 
 		return nil
 	},
