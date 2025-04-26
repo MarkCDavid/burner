@@ -1,8 +1,7 @@
 ---
-seed: 2
-
 node_count: 20
-simulation_time_in_seconds: 316224000
+
+simulation_time_in_seconds: 31622400
 
 average_network_latency_in_seconds: 6
 chain_reorganization_threshold: 6
@@ -26,11 +25,7 @@ pricing_proof_of_burn:
 
   average_block_frequency_in_seconds: 600
 
-  participation_percentage: 0.2
+  participation_percentage: 0.01
 
-  difficulty_epoch_length: 2016
-  price_epoch_length: 1025
-  burn_epoch_length: 1207
-
-  settled_period: 17
-  working_period: 1503
+  settled_period: 10
+  working_period: 1000

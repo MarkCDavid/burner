@@ -8,14 +8,27 @@ const (
 	ProofOfBurn ConsensusType = 1
 )
 
+func (t ConsensusType) ToString() string {
+	switch t {
+	case Genesis:
+		return "Genesis"
+	case ProofOfWork:
+		return "ProofOfWork"
+	case ProofOfBurn:
+		return "ProofOfBurn"
+	}
+	return "N/A"
+}
+
 type Consensus interface {
 	Initialize()
 
-	Adjust(event *Event_BlockMined)
-
+	GetPower() float64
 	GetType() ConsensusType
 
-	CanMine(receivedEvent *Event_BlockReceived) bool
+	CanMine(event Event) bool
+	Adjust(event Event)
+
 	GetNextMiningTime(event *Event_BlockMined) float64
 
 	Synchronize(consensus Consensus)

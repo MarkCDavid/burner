@@ -1,5 +1,7 @@
 package internal
 
+import "github.com/sirupsen/logrus"
+
 func AddConsensus_SPoB(node *Node) {
 	configuration := node.Simulation.Configuration.SlimcoinProofOfBurn
 
@@ -7,14 +9,20 @@ func AddConsensus_SPoB(node *Node) {
 		return
 	}
 
-	node.Consensus = append(node.Consensus, &Consensus_SPoB{
+	if node.ProofOfBurn != nil {
+		logrus.Fatal("Multiple Proof of Burn layers enabled.")
+	}
+
+	node.ProofOfBurn = &Consensus_SPoB{
 		Enabled: configuration.Enabled,
 
 		Node: node,
 
+		Power: node.Simulation.Random.LogNormal(AveragePowerUsage_Node_ProofOfBurn),
+
 		Ratio:      float64(1) / configuration.Interval,
 		Difficulty: float64(1),
-	})
+	}
 }
 
 type Consensus_SPoB_Configuration struct {
@@ -27,22 +35,32 @@ type Consensus_SPoB struct {
 
 	Node *Node
 
+	Power float64
+
 	Ratio      float64
 	Difficulty float64
 }
 
-func (c *Consensus_SPoB) Initialize() {}
-
+func (c *Consensus_SPoB) GetPower() float64 {
+	return c.Power
+}
 func (c *Consensus_SPoB) GetType() ConsensusType {
 	return ProofOfBurn
 }
 
-func (c *Consensus_SPoB) CanMine(receivedEvent *Event_BlockReceived) bool {
+func (c *Consensus_SPoB) Initialize() {}
+
+func (c *Consensus_SPoB) CanMine(event Event) bool {
 	if !c.Enabled {
 		return false
 	}
 
-	if receivedEvent.Block.Consensus.GetType() != ProofOfWork {
+	blockReceivedEvent, ok := event.(*Event_BlockReceived)
+	if !ok {
+		return false
+	}
+
+	if blockReceivedEvent.Block.Consensus.GetType() != ProofOfWork {
 		return false
 	}
 
@@ -62,13 +80,17 @@ func (c *Consensus_SPoB) Synchronize(consensus Consensus) {
 	}
 }
 
-func (c *Consensus_SPoB) Adjust(event *Event_BlockMined) {
-	if event.Block.Consensus.GetType() != c.GetType() {
+func (c *Consensus_SPoB) Adjust(event Event) {
+	blockMinedEvent, ok := event.(*Event_BlockMined)
+	if !ok {
+		return
+	}
+	if blockMinedEvent.Block.Consensus.GetType() != c.GetType() {
 		return
 	}
 
-	powBlocksMined := event.MinedBy.Simulation.Statistics.BlocksMined[ProofOfWork]
-	pobBlocksMined := event.MinedBy.Simulation.Statistics.BlocksMined[ProofOfBurn]
+	powBlocksMined := blockMinedEvent.MinedBy.Simulation.Statistics.BlocksMined[ProofOfWork]
+	pobBlocksMined := blockMinedEvent.MinedBy.Simulation.Statistics.BlocksMined[ProofOfBurn]
 
 	actualRatio := float64(pobBlocksMined) / float64(powBlocksMined)
 	deviation := actualRatio / c.Ratio

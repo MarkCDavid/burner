@@ -1,8 +1,11 @@
 package internal
 
+// import "github.com/sirupsen/logrus"
+
 type Event_BlockMined struct {
-	MinedBy    *Node
 	Simulation *Simulation
+
+	MinedBy *Node
 
 	Block         *Block
 	PreviousBlock *Block
@@ -14,11 +17,19 @@ type Event_BlockMined struct {
 }
 
 func (event *Event_BlockMined) Handle() {
+	event.Block.FinishedAt = event.Simulation.CurrentTime
+	event.MinedBy.PreviousBlock = event.Block
+	// logrus.Infof("%d mined %s block (%d <- %d)", event.MinedBy.Id, event.Block.Consensus.GetType().ToString(), event.PreviousBlock.Id, event.Block.Id)
 	event.Simulation.Statistics.OnBlockMined(event.MinedBy.Simulation, event)
 
-	for _, consensus := range event.MinedBy.Consensus {
-		consensus.Adjust(event)
+	if event.MinedBy.ProofOfWork != nil {
+		event.MinedBy.ProofOfWork.Adjust(event)
 	}
+
+	if event.MinedBy.ProofOfBurn != nil {
+		event.MinedBy.ProofOfBurn.Adjust(event)
+	}
+
 	event.MinedBy.Transactions += event.Block.Transactions
 
 	for _, node := range event.MinedBy.Simulation.Nodes {
@@ -40,66 +51,67 @@ func (s *Simulation) GetTransactionsToInclude(event *Event_BlockMined) int64 {
 	return availableTransactions
 }
 
-func ProduceBlock(minedBy *Node, event *Event_BlockReceived) *Block {
-	consensus := minedBy.GetConsensus(event)
-	if consensus == nil {
-		return nil
-	}
-
+func (minedBy *Node) BuildBlock(depth int64, consensus Consensus) *Block {
 	minedBy.Simulation.BlockCount += 1
 
 	return &Block{
 		Id:        minedBy.Simulation.BlockCount,
 		Node:      minedBy,
-		Depth:     event.Block.Depth + 1,
+		Depth:     depth,
 		Consensus: consensus,
 	}
 }
 
-func (s *Simulation) ScheduleBlockMinedEvent(
+func (minedBy *Node) ProduceBlock(event *Event_BlockReceived) *Block {
+	consensus := minedBy.GetConsensus(event)
+	if consensus == nil {
+		return nil
+	}
+
+	return minedBy.BuildBlock(event.Block.Depth+1, consensus)
+}
+
+func (simulation *Simulation) ScheduleBlockMinedEvent(
 	minedBy *Node,
-	receivedEvent *Event_BlockReceived,
+	block *Block,
 ) {
-	block := ProduceBlock(minedBy, receivedEvent)
 	if block == nil {
 		return
 	}
 
 	event := &Event_BlockMined{
-		Simulation:    s,
+		Simulation: simulation,
+
+		MinedBy: minedBy,
+
 		Block:         block,
-		PreviousBlock: receivedEvent.Block,
+		PreviousBlock: minedBy.PreviousBlock,
 
-		ScheduledAt: s.CurrentTime,
+		ScheduledAt: simulation.CurrentTime,
 	}
-	event.SetMiner(minedBy)
-
+	minedBy.Event = event
 	event.DispatchAt = block.Consensus.GetNextMiningTime(event)
-	event.Block.Transactions = s.GetTransactionsToInclude(event)
+	event.Block.Transactions = simulation.GetTransactionsToInclude(event)
 
-	s.Events.Push(event)
+	simulation.Events.Push(event)
 }
 
 func (e *Event_BlockMined) PowerUsed() float64 {
-	return e.Duration() * e.MinedBy.Power[e.Block.Consensus.GetType()]
-}
-func (e *Event_BlockMined) SetMiner(n *Node) {
-	e.MinedBy = n
-	n.Event = e
+	return e.Duration() * e.Block.Consensus.GetPower()
 }
 
 func (e *Event_BlockMined) Duration() float64 {
-	return e.Simulation.CurrentTime - e.ScheduledAt
+	return e.Simulation.CurrentTime - e.PreviousBlock.FinishedAt
 }
 
-func (event *Event_BlockMined) GetIndex() int {
-	return event.Index
+func (e *Event_BlockMined) GetIndex() int {
+	return e.Index
 }
 
-func (event *Event_BlockMined) SetIndex(index int) {
-	event.Index = index
+func (e *Event_BlockMined) SetIndex(index int) {
+	e.Index = index
 }
 
-func (event *Event_BlockMined) EventTime() float64 {
-	return event.DispatchAt
+func (e *Event_BlockMined) EventTime() float64 {
+	return e.DispatchAt
 }
