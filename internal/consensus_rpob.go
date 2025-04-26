@@ -39,7 +39,7 @@ func (c *Consensus_RPoB) GetType() ConsensusType {
 	return ProofOfBurn
 }
 
-func (c *Consensus_RPoB) CanMine(receivedEvent *Event) bool {
+func (c *Consensus_RPoB) CanMine(receivedEvent *Event_BlockReceived) bool {
 	if !c.Enabled {
 		return false
 	}
@@ -51,7 +51,7 @@ func (c *Consensus_RPoB) CanMine(receivedEvent *Event) bool {
 	return c.Node.Simulation.Random.Chance(chance)
 }
 
-func (c *Consensus_RPoB) GetNextMiningTime(event *Event) float64 {
+func (c *Consensus_RPoB) GetNextMiningTime(event *Event_BlockMined) float64 {
 	// Computing 1 hash takes barely any time.
 	return c.Node.Simulation.CurrentTime + 1
 }
@@ -63,6 +63,6 @@ func (c *Consensus_RPoB) Synchronize(consensus Consensus) {
 	}
 }
 
-func (c *Consensus_RPoB) Adjust(event *Event) {
+func (c *Consensus_RPoB) Adjust(event *Event_BlockMined) {
 
 }

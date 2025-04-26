@@ -76,8 +76,8 @@ func (s *Simulation) Simulate() {
 	logrus.Infof("Simulation seed: %d", s.Random.GetSeed())
 	s.InitializeNodes()
 
-	initialEvent := &Event{
-		Node: nil,
+	initialEvent := &Event_BlockReceived{
+		ReceivedBy: nil,
 		Block: &Block{
 			Id:        0,
 			Node:      nil,
@@ -97,15 +97,8 @@ func (s *Simulation) Simulate() {
 			break
 		}
 		event := s.Events.Pop()
-
-		s.AdvanceTimeTo(event.DispatchAt)
-
-		switch event.EventType {
-		case BlockMinedEvent:
-			s.HandleBlockMinedEvent(event)
-		case BlockReceivedEvent:
-			s.HandleBlockReceivedEvent(event)
-		}
+		s.AdvanceTimeTo(event.EventTime())
+		event.Handle()
 	}
 
 	s.ProgressBar.Finish()

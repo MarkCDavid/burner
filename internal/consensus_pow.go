@@ -31,11 +31,14 @@ type Consensus_PoW struct {
 
 	Node *Node
 
+	EpochLength int64
+
 	EpochIndex       int64
-	EpochLength      int64
-	BlockFreqency    float64
 	EpochTimeElapsed float64
-	Difficulty       float64
+
+	BlockFreqency float64
+
+	Difficulty float64
 }
 
 func (c *Consensus_PoW) Initialize() {
@@ -48,11 +51,11 @@ func (c *Consensus_PoW) GetType() ConsensusType {
 	return ProofOfWork
 }
 
-func (c *Consensus_PoW) CanMine(receivedEvent *Event) bool {
+func (c *Consensus_PoW) CanMine(receivedEvent *Event_BlockReceived) bool {
 	return c.Enabled
 }
 
-func (c *Consensus_PoW) GetNextMiningTime(event *Event) float64 {
+func (c *Consensus_PoW) GetNextMiningTime(event *Event_BlockMined) float64 {
 	lambda := c.Node.Power[ProofOfWork] / (c.BlockFreqency * c.Difficulty)
 	return c.Node.Simulation.CurrentTime + c.Node.Simulation.Random.Expovariate(lambda)
 }
@@ -72,7 +75,11 @@ func (c *Consensus_PoW) Set(difficulty float64) {
 	c.Difficulty = difficulty
 }
 
-func (c *Consensus_PoW) Adjust(event *Event) {
+func (c *Consensus_PoW) Adjust(event *Event_BlockMined) {
+	if event.Block.Consensus.GetType() != c.GetType() {
+		return
+	}
+
 	c.EpochIndex += 1
 	c.EpochTimeElapsed += event.Duration()
 

@@ -11,12 +11,12 @@ const (
 type Consensus interface {
 	Initialize()
 
-	Adjust(event *Event)
+	Adjust(event *Event_BlockMined)
 
 	GetType() ConsensusType
 
-	CanMine(receivedEvent *Event) bool
-	GetNextMiningTime(event *Event) float64
+	CanMine(receivedEvent *Event_BlockReceived) bool
+	GetNextMiningTime(event *Event_BlockMined) float64
 
 	Synchronize(consensus Consensus)
 }

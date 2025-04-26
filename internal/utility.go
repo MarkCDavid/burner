@@ -9,6 +9,9 @@ import (
 )
 
 func TimeFunction(function func(), name string) {
+	logrus.Info()
+	logrus.Info()
+	logrus.Infof("Running %s", name)
 	start := time.Now()
 	function()
 	elapsed := time.Since(start)
@@ -21,6 +24,17 @@ func PrintMemoryUsage() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	logrus.Infof("Memory Usage: %s | GC ran %v times", FormatBytes(m.Sys), m.NumGC)
+}
+
+func Filter[T any](slice []T, keep func(T) bool) []T {
+	n := 0
+	for _, v := range slice {
+		if keep(v) {
+			slice[n] = v
+			n++
+		}
+	}
+	return slice[:n]
 }
 
 const KiB = 1024

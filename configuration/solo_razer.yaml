@@ -1,9 +1,8 @@
 ---
 seed: 2
 
-# node_count: 63000
-node_count: 3
-simulation_time_in_seconds: 31622400
+node_count: 20
+simulation_time_in_seconds: 3162240
 
 average_network_latency_in_seconds: 6
 chain_reorganization_threshold: 6

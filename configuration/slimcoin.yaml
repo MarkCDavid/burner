@@ -1,8 +1,7 @@
 ---
 seed: 2
 
-# node_count: 63000
-node_count: 3
+node_count: 20
 simulation_time_in_seconds: 31622400
 
 average_network_latency_in_seconds: 6

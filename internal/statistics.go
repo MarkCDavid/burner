@@ -30,8 +30,8 @@ func (s *Statistics) GetAverageTransactionsPerBlock() float64 {
 	return float64(s.GetTotalTransactions()) / float64(s.GetTotalBlocks())
 }
 
-func (s *Statistics) OnBlockMined(simulation *Simulation, event *Event) {
-	node := event.Node.Id
+func (s *Statistics) OnBlockMined(simulation *Simulation, event *Event_BlockMined) {
+	node := event.MinedBy.Id
 	consensusType := event.Block.Consensus.GetType()
 
 	s.BlocksMined[consensusType] += 1
@@ -46,8 +46,8 @@ func (s *Statistics) OnBlockMined(simulation *Simulation, event *Event) {
 	s.PerNode[node].TimeOnSuccessfulMining += event.Duration()
 }
 
-func (s *Statistics) OnBlockAbandoned(simulation *Simulation, event *Event) {
-	node := event.Node.Id
+func (s *Statistics) OnBlockAbandoned(simulation *Simulation, event *Event_BlockMined) {
+	node := event.MinedBy.Id
 	s.PerNode[node].PowerUsed += event.PowerUsed()
 	s.PerNode[node].TimeMining += event.Duration()
 }
