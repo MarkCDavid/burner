@@ -1,5 +1,7 @@
 package internal
 
+import "fmt"
+
 //
 // import (
 // 	"encoding/json"
@@ -26,6 +28,16 @@ type Block struct {
 	Depth        int64
 	StartedAt    float64
 	FinishedAt   float64
+	Abandoned    bool
 	Transactions int64
 	Consensus    Consensus
+}
+
+func (b *Block) ToString() string {
+	return fmt.Sprintf(
+		`{
+      %d
+    }`,
+		b.Id,
+	)
 }

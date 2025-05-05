@@ -75,6 +75,7 @@ type Consensus_PPoB struct {
 }
 
 type BurnTransaction struct {
+	BurnedBy  *Node
 	BurnedAt  int64
 	BurnedFor float64
 	Power     float64
@@ -104,7 +105,10 @@ func (c *Consensus_PPoB) BurnDecay(t BurnTransaction) float64 {
 func (c *Consensus_PPoB) Initialize() {
 	c.Price = c.Node.Simulation.Random.LogNormal(AverageBurnTransaction_Consensus_PriceProofOfBurn)
 	c.BurnBudget = c.Node.Simulation.Random.LogNormal(AverageBurnBudget_Consensus_PriceProofOfBurn)
+
+	c.Node.Simulation.Database.SavePricingProofOfBurnConsensus(c, Initialize)
 	c.Burn(0)
+
 }
 
 func (c *Consensus_PPoB) CanMine(event Event) bool {
@@ -131,18 +135,19 @@ func (c *Consensus_PPoB) CanMine(event Event) bool {
 }
 
 func (c *Consensus_PPoB) GetNextMiningTime(event *Event_BlockMined) float64 {
-	return c.Node.Simulation.CurrentTime + 1
+	return c.Node.Simulation.CurrentTime + c.Node.Simulation.Random.Float() + 0.5
 }
 
 func (c *Consensus_PPoB) Synchronize(consensus Consensus) {
 	other, ok := consensus.(*Consensus_PPoB)
 	if !ok {
-		panic("not a slimcoin proof of burn difficulty")
+		return
 	}
 
 	c.Price = other.Price
 	c.PriceAdjustmentIndex = other.PriceAdjustmentIndex
 
+	c.Node.Simulation.Database.SavePricingProofOfBurnConsensus(c, Synchronize)
 }
 
 func (c *Consensus_PPoB) Adjust(event Event) {
@@ -150,8 +155,11 @@ func (c *Consensus_PPoB) Adjust(event Event) {
 		return c.Delta(t) < c.WorkingPeriod
 	})
 
-	_, ok := event.(*Event_BlockMined)
+	blockMinedEvent, ok := event.(*Event_BlockMined)
 	if ok {
+		if blockMinedEvent.Block.Consensus.GetType() != ProofOfBurn {
+			return
+		}
 		c.PriceAdjustmentIndex++
 		if c.PriceAdjustmentIndex >= c.WorkingPeriod {
 			c.AdjustPrice()
@@ -185,11 +193,13 @@ func (c *Consensus_PPoB) AdjustPrice() {
 	if c.Price > 10000000000 {
 		c.Price = 10000000000
 	}
+
+	c.Node.Simulation.Database.SavePricingProofOfBurnConsensus(c, Adjust)
 }
 
 func (c *Consensus_PPoB) Burn(depth int64) {
 	if c.Node.ProofOfWork != nil {
-		participates := c.Node.Simulation.Random.Chance(c.BurnParticipationChance)
+		participates := c.Node.Simulation.Random.Chance(c.BurnParticipationChance / float64(10*len(c.Node.Simulation.Nodes)))
 		if !participates {
 			return
 		}
@@ -207,10 +217,12 @@ func (c *Consensus_PPoB) Burn(depth int64) {
 	}
 
 	bt := BurnTransaction{
+		BurnedBy:  c.Node,
 		BurnedAt:  depth,
 		BurnedFor: desiredPrice,
 		Power:     desiredPrice / c.Price,
 	}
 
 	c.BurnTransactions = append(c.BurnTransactions, bt)
+	c.Node.Simulation.Database.SavePricingProofOfBurnBurnTransaction(bt)
 }

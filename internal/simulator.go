@@ -1,6 +1,9 @@
 package internal
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/cheggaaa/pb/v3"
 	"github.com/sirupsen/logrus"
 )
@@ -19,12 +22,15 @@ type Simulation struct {
 	ProgressBar *pb.ProgressBar
 
 	Statistics Statistics
+
+	Database *SQLite
 }
 
 func NewSimulation(configuration_path string) *Simulation {
 	configuration := mustLoadConfiguration(configuration_path)
 	random := CreateRandom(configuration.Seed)
 
+	databasePath := fmt.Sprintf("result/%s_%d.sqlite", configuration.Name, int(time.Now().Unix()))
 	return &Simulation{
 		Configuration: configuration,
 		Nodes:         make([]*Node, 0),
@@ -42,6 +48,7 @@ func NewSimulation(configuration_path string) *Simulation {
 			BlockMiningTime:       [2]float64{},
 			PerNode:               make([]NodeStatistics, 0),
 		},
+		Database: NewSQLite(databasePath),
 	}
 }
 
@@ -67,7 +74,10 @@ func (s *Simulation) InitializeNodes() {
 		if node.ProofOfBurn != nil {
 			node.ProofOfBurn.Initialize()
 		}
+
+		s.Database.SaveNode(node)
 	}
+
 }
 
 func (s *Simulation) GetCurrentTransactionCount() int64 {
@@ -78,6 +88,7 @@ func (s *Simulation) Simulate() {
 
 	logrus.Infof("=================")
 	logrus.Infof("Simulation seed: %d", s.Random.GetSeed())
+	logrus.Infof("Simulation database: %s", s.Database._path)
 	s.InitializeNodes()
 
 	genesisBlock := &Block{
@@ -110,34 +121,7 @@ func (s *Simulation) Simulate() {
 	}
 
 	s.ProgressBar.Finish()
+	s.Database.Close()
 
 	logrus.Infof("Simulation ran for: %f", s.CurrentTime)
-
-	logrus.Infof("Total blocks mined: %d", s.Statistics.GetTotalBlocks())
-	logrus.Infof("Total PoW blocks mined: %d", s.Statistics.BlocksMined[ProofOfWork])
-	logrus.Infof("Total Slimcoin PoB blocks mined: %d", s.Statistics.BlocksMined[ProofOfBurn])
-	logrus.Infof("Ratio blocks mined: %f", float64(s.Statistics.BlocksMined[ProofOfBurn])/float64(s.Statistics.BlocksMined[ProofOfWork]))
-	logrus.Info()
-	logrus.Infof("Total mining time: %f", s.Statistics.GetTotalMiningTime())
-	logrus.Infof("Total PoW mining time: %f", s.Statistics.BlockMiningTime[ProofOfWork])
-	logrus.Infof("Total Slimcoin PoB mining time: %f", s.Statistics.BlockMiningTime[ProofOfBurn])
-	logrus.Info()
-	logrus.Infof("Average block mining time: %f", s.Statistics.GetAverageBlockMiningTime())
-	logrus.Infof("Average PoW block mining time: %f", s.Statistics.BlockMiningTime[ProofOfWork]/float64(s.Statistics.BlocksMined[ProofOfWork]))
-	logrus.Infof("Average Slimcoin PoB block mining time: %f", s.Statistics.BlockMiningTime[ProofOfBurn]/float64(s.Statistics.BlocksMined[ProofOfBurn]))
-	logrus.Info()
-	for i := 0; i < len(s.Statistics.PerNode); i++ {
-		logrus.Infof("%d node - on average spent %f on mined block.", i, s.Statistics.PerNode[i].TimeOnSuccessfulMining/float64(s.Statistics.PerNode[i].BlocksMined))
-	}
-	logrus.Info()
-	logrus.Infof("Average transactions per block: %f", s.Statistics.GetAverageTransactionsPerBlock())
-	logrus.Infof("Simulation total transactions: %d", s.GetCurrentTransactionCount())
-	logrus.Infof("Total processed transactions:  %d", s.Statistics.GetTotalTransactions())
-	logrus.Infof("Transactions per second:  %f", float64(s.Statistics.GetTotalTransactions())/s.CurrentTime)
-	logrus.Info()
-	logrus.Infof("Total power used: %f", s.Statistics.GetTotalPowerUsed())
-	logrus.Info()
-	logrus.Infof("Power used per block: %f", s.Statistics.GetTotalPowerUsed()/float64(s.Statistics.GetTotalBlocks()))
-	logrus.Infof("Power used per transaction: %f", s.Statistics.GetTotalPowerUsed()/float64(s.Statistics.GetTotalTransactions()))
-	logrus.Infof("Power used per second: %f", s.Statistics.GetTotalPowerUsed()/s.CurrentTime)
 }
