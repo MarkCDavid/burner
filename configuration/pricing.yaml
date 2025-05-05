@@ -3,6 +3,7 @@ name: "Pricing"
 
 node_count: 20
 simulation_time_in_seconds: 31622400
+# simulation_time_in_seconds: 135691200
 
 average_network_latency_in_seconds: 6
 chain_reorganization_threshold: 6

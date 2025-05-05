@@ -122,9 +122,7 @@ func (c *Consensus_PPoB) CanMine(event Event) bool {
 	}
 
 	for _, burnTransaction := range c.BurnTransactions {
-		multiplier := c.BurnDecay(burnTransaction)
-		power := burnTransaction.Power * multiplier
-		chance := power / float64(len(randomReceivedEvent.Simulation.Nodes))
+		chance := c.BurnDecay(burnTransaction) / float64(6*len(randomReceivedEvent.Simulation.Nodes))
 
 		if c.Node.Simulation.Random.Chance(chance) {
 			return true
@@ -160,11 +158,12 @@ func (c *Consensus_PPoB) Adjust(event Event) {
 		if blockMinedEvent.Block.Consensus.GetType() != ProofOfBurn {
 			return
 		}
-		c.PriceAdjustmentIndex++
-		if c.PriceAdjustmentIndex >= c.WorkingPeriod {
-			c.AdjustPrice()
-			c.PriceAdjustmentIndex = 0
-		}
+
+		c.AdjustPrice()
+		// c.PriceAdjustmentIndex++
+		// if c.PriceAdjustmentIndex >= 2016 {
+		// 	c.PriceAdjustmentIndex = 0
+		// }
 		return
 	}
 
@@ -178,7 +177,6 @@ func (c *Consensus_PPoB) Adjust(event Event) {
 func (c *Consensus_PPoB) AdjustPrice() {
 	averageBlockFrequency := c.Node.Simulation.Statistics.BlockMiningTime[ProofOfBurn] / float64(c.Node.Simulation.Statistics.BlocksMined[ProofOfBurn])
 	deviation := c.ExpectedBlockFrequency / averageBlockFrequency
-
 	if deviation > 2 {
 		deviation = 2
 	}
@@ -198,29 +196,24 @@ func (c *Consensus_PPoB) AdjustPrice() {
 }
 
 func (c *Consensus_PPoB) Burn(depth int64) {
-	if c.Node.ProofOfWork != nil {
-		participates := c.Node.Simulation.Random.Chance(c.BurnParticipationChance / float64(10*len(c.Node.Simulation.Nodes)))
-		if !participates {
+	participates := c.Node.Simulation.Random.Chance(c.BurnParticipationChance / float64(10*len(c.Node.Simulation.Nodes)))
+	if len(c.BurnTransactions) > 0 && !participates {
+		return
+	}
+
+	willingToSpend := c.Node.Simulation.Random.LogNormal(AverageBurnTransaction_Consensus_PriceProofOfBurn)
+	if c.Price > willingToSpend {
+		pricePenalty := math.Exp(-(willingToSpend / c.Price))
+		if !c.Node.Simulation.Random.Chance(pricePenalty) {
 			return
 		}
-	}
-
-	var currentSpending float64 = 0
-	for _, burnTransaction := range c.BurnTransactions {
-		currentSpending += burnTransaction.BurnedFor
-	}
-
-	desiredPrice := c.Node.Simulation.Random.LogNormal(AverageBurnTransaction_Consensus_PriceProofOfBurn)
-	skip := currentSpending+desiredPrice > c.BurnBudget
-	if skip {
-		return
 	}
 
 	bt := BurnTransaction{
 		BurnedBy:  c.Node,
 		BurnedAt:  depth,
-		BurnedFor: desiredPrice,
-		Power:     desiredPrice / c.Price,
+		BurnedFor: willingToSpend,
+		Power:     1,
 	}
 
 	c.BurnTransactions = append(c.BurnTransactions, bt)

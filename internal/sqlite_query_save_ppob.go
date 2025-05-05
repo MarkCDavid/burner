@@ -7,6 +7,7 @@ import (
 type PricingProofOfBurnBurnConsensusTable struct {
 	SimulationTime float64
 	NodeId         int64
+	CurrentlyAt    int64
 	Price          float64
 }
 
@@ -16,6 +17,7 @@ func (db *SQLite) PreparePricingProofOfBurnConsensusTable() {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp REAL NOT NULL,
     nodeId INTEGER NOT NULL,
+    currentlyAt INTEGER NOT NULL,
     price REAL NOT NULL
   );`, tableName,
 	)
@@ -23,8 +25,9 @@ func (db *SQLite) PreparePricingProofOfBurnConsensusTable() {
 	insertInto := fmt.Sprintf(`INSERT INTO %s (
 		timestamp,
 		nodeId,
+		currentlyAt,
 		price
-  ) VALUES (?, ?, ?);`,
+  ) VALUES (?, ?, ?, ?);`,
 		tableName,
 	)
 
@@ -40,9 +43,15 @@ func (db *SQLite) SavePricingProofOfBurnConsensus(consensus Consensus, updateTyp
 	if !ok {
 		return
 	}
+	var depth int64 = 0
+	event := ppobConsensus.Node.Event
+	if event != nil {
+		depth = event.Block.Depth
+	}
 	db._pricingProofOfBurnConsensus.Save(PricingProofOfBurnBurnConsensusTable{
 		SimulationTime: ppobConsensus.Node.Simulation.CurrentTime,
 		NodeId:         ppobConsensus.Node.Id,
+		CurrentlyAt:    depth,
 		Price:          ppobConsensus.Price,
 	})
 }
