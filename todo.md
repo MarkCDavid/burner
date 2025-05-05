@@ -64,3 +64,5 @@
     - Expectation:
       - Same as Adjustable Integration, but because we do not have PoW in the
         same network, we can adjust out mine on decay time as we see fit.
+
+What is interesting:

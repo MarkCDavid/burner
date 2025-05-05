@@ -14,33 +14,33 @@ var simulationCmd = &cobra.Command{
 		// internal.TimeFunction(simulation.Simulate, "simulation.Simulate()")
 		// internal.PrintMemoryUsage()
 
-		bitcoin := internal.NewSimulation("./configuration/bitcoin.yaml")
-		internal.TimeFunction(bitcoin.Simulate, "bitcoin.Simulate()")
-		internal.PrintMemoryUsage()
+		// bitcoin := internal.NewSimulation("./configuration/bitcoin.yaml")
+		// internal.TimeFunction(bitcoin.Simulate, "bitcoin.Simulate()")
+		// internal.PrintMemoryUsage()
+		//
+		// time.Sleep(time.Second)
+		//
+		// slimcoin := internal.NewSimulation("./configuration/slimcoin.yaml")
+		// internal.TimeFunction(slimcoin.Simulate, "slimcoin.Simulate()")
+		// internal.PrintMemoryUsage()
+		//
+		// time.Sleep(time.Second)
+		//
+		// razer := internal.NewSimulation("./configuration/razer.yaml")
+		// internal.TimeFunction(razer.Simulate, "razer.Simulate()")
+		// internal.PrintMemoryUsage()
+		//
+		// time.Sleep(time.Second)
+		//
+		// solo_razer := internal.NewSimulation("./configuration/solo_razer.yaml")
+		// internal.TimeFunction(solo_razer.Simulate, "solo_razer.Simulate()")
+		// internal.PrintMemoryUsage()
+		//
+		// time.Sleep(time.Second)
 
-		time.Sleep(time.Second)
-
-		slimcoin := internal.NewSimulation("./configuration/slimcoin.yaml")
-		internal.TimeFunction(slimcoin.Simulate, "slimcoin.Simulate()")
-		internal.PrintMemoryUsage()
-
-		time.Sleep(time.Second)
-
-		razer := internal.NewSimulation("./configuration/razer.yaml")
-		internal.TimeFunction(razer.Simulate, "razer.Simulate()")
-		internal.PrintMemoryUsage()
-
-		time.Sleep(time.Second)
-
-		solo_razer := internal.NewSimulation("./configuration/solo_razer.yaml")
-		internal.TimeFunction(solo_razer.Simulate, "solo_razer.Simulate()")
-		internal.PrintMemoryUsage()
-
-		time.Sleep(time.Second)
-
-		pricing := internal.NewSimulation("./configuration/pricing.yaml")
-		internal.TimeFunction(pricing.Simulate, "pricing.Simulate()")
-		internal.PrintMemoryUsage()
+		// pricing := internal.NewSimulation("./configuration/pricing.yaml")
+		// internal.TimeFunction(pricing.Simulate, "pricing.Simulate()")
+		// internal.PrintMemoryUsage()
 
 		time.Sleep(time.Second)
 

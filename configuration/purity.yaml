@@ -1,8 +1,11 @@
 ---
 name: "PricingOnly"
 
-node_count: 20
+node_count: 10
+
+# simulation_time_in_seconds: 604800
 simulation_time_in_seconds: 31622400
+# simulation_time_in_seconds: 135691200
 
 average_network_latency_in_seconds: 6
 chain_reorganization_threshold: 6
@@ -23,6 +26,8 @@ pricing_proof_of_burn:
   enabled: true
 
   average_block_frequency_in_seconds: 600
+
+  participation_percentage: 1
 
   settled_period: 10
   working_period: 1000
