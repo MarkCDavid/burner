@@ -1,6 +1,7 @@
 ---
-node_count: 20
+name: "Pricing"
 
+node_count: 20
 simulation_time_in_seconds: 31622400
 
 average_network_latency_in_seconds: 6

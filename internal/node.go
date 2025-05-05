@@ -40,12 +40,12 @@ type Node struct {
 }
 
 func (n *Node) GetConsensus(event *Event_BlockReceived) Consensus {
-	if n.ProofOfWork != nil && n.ProofOfWork.CanMine(event) {
-		return n.ProofOfWork
-	}
-
 	if n.ProofOfBurn != nil && n.ProofOfBurn.CanMine(event) {
 		return n.ProofOfBurn
+	}
+
+	if n.ProofOfWork != nil && n.ProofOfWork.CanMine(event) {
+		return n.ProofOfWork
 	}
 
 	return nil

@@ -7,7 +7,8 @@ import (
 )
 
 type Configuration struct {
-	Seed int64 `yaml:"seed"`
+	Seed int64  `yaml:"seed"`
+	Name string `yaml:"name"`
 
 	NodeCount      int64   `yaml:"node_count"`
 	SimulationTime float64 `yaml:"simulation_time_in_seconds"`

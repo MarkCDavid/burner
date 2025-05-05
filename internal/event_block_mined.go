@@ -55,8 +55,10 @@ func (minedBy *Node) BuildBlock(depth int64, consensus Consensus) *Block {
 	minedBy.Simulation.BlockCount += 1
 
 	return &Block{
-		Id:        minedBy.Simulation.BlockCount,
-		Node:      minedBy,
+		Id:   minedBy.Simulation.BlockCount,
+		Node: minedBy,
+
+		StartedAt: minedBy.Simulation.CurrentTime,
 		Depth:     depth,
 		Consensus: consensus,
 	}
@@ -76,6 +78,7 @@ func (simulation *Simulation) ScheduleBlockMinedEvent(
 	block *Block,
 ) {
 	if block == nil {
+		minedBy.Event = nil
 		return
 	}
 

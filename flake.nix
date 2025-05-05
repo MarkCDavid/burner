@@ -19,6 +19,8 @@
             go
             just
             graphviz
+            sqlitebrowser
+            python312Packages.duckdb
           ];
         };
       });

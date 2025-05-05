@@ -28,6 +28,7 @@ func (event *Event_BlockReceived) Handle() {
 	deepEnough := reorganizationThreshold <= event.Block.Depth
 
 	if deepEnough {
+		event.Simulation.Statistics.ForkResolutions++
 		event.Reorganize()
 		return
 	}
@@ -39,7 +40,7 @@ func (event *Event_BlockReceived) Reorganize() {
 		event.ReceivedBy.Transactions = event.Block.Node.Transactions
 
 		if event.ReceivedBy.Event != nil {
-
+			event.ReceivedBy.Event.Block.Abandoned = true
 			event.ReceivedBy.Event.Block.FinishedAt = event.ReceivedBy.Simulation.CurrentTime
 			event.ReceivedBy.Simulation.Statistics.OnBlockAbandoned(event.Simulation, event.ReceivedBy.Event)
 			event.Simulation.Events.Remove(event.ReceivedBy.Event)
@@ -47,6 +48,10 @@ func (event *Event_BlockReceived) Reorganize() {
 	}
 
 	event.ReceivedBy.PreviousBlock = event.Block
+
+	if event.ReceivedBy.ProofOfWork != nil {
+		event.ReceivedBy.ProofOfWork.Adjust(event)
+	}
 
 	if event.ReceivedBy.ProofOfBurn != nil {
 		event.ReceivedBy.ProofOfBurn.Adjust(event)

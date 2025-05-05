@@ -8,6 +8,14 @@ const (
 	ProofOfBurn ConsensusType = 1
 )
 
+type ConsensusUpdateType int64
+
+const (
+	Initialize  ConsensusUpdateType = -1
+	Adjust      ConsensusUpdateType = 0
+	Synchronize ConsensusUpdateType = 1
+)
+
 func (t ConsensusType) ToString() string {
 	switch t {
 	case Genesis:

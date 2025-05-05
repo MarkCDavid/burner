@@ -55,6 +55,7 @@ func (c *Consensus_PoW) Initialize() {
 	for _, node := range c.Node.Simulation.Nodes {
 		c.Difficulty += node.ProofOfWork.GetPower()
 	}
+	c.Node.Simulation.Database.SaveProofOfWorkConsensus(c, Initialize)
 }
 
 func (c *Consensus_PoW) GetType() ConsensusType {
@@ -84,6 +85,8 @@ func (c *Consensus_PoW) Synchronize(consensus Consensus) {
 	c.BlockFreqency = from.BlockFreqency
 	c.EpochTimeElapsed = from.EpochTimeElapsed
 	c.Difficulty = from.Difficulty
+
+	c.Node.Simulation.Database.SaveProofOfWorkConsensus(c, Synchronize)
 }
 func (c *Consensus_PoW) Set(difficulty float64) {
 	c.Difficulty = difficulty
@@ -92,10 +95,10 @@ func (c *Consensus_PoW) Set(difficulty float64) {
 func (c *Consensus_PoW) Adjust(event Event) {
 	blockMinedEvent, ok := event.(*Event_BlockMined)
 	if !ok {
-		panic("not a proof of work difficulty")
+		return
 	}
 
-	if blockMinedEvent.Block.Consensus.GetType() != c.GetType() {
+	if blockMinedEvent.Block.Consensus.GetType() != ProofOfWork {
 		return
 	}
 
@@ -111,10 +114,12 @@ func (c *Consensus_PoW) Adjust(event Event) {
 			deviation = 0.25
 		}
 
-		// logrus.Infof("Epoch Time: %f, Average Time: %f, Epoch Index: %d, Adjustment: %f", c.EpochTimeElapsed, c.EpochTimeElapsed/float64(c.EpochIndex), c.EpochIndex, adjustment)
+		// logrus.Infof("Epoch Time: %f, Average Time: %f, Epoch Index: %d, Adjustment: %f", c.EpochTimeElapsed, c.EpochTimeElapsed/float64(c.EpochIndex), c.EpochIndex, deviation)
 
 		c.Difficulty *= deviation
 		c.EpochIndex = 0
 		c.EpochTimeElapsed = 0
+
+		c.Node.Simulation.Database.SaveProofOfWorkConsensus(c, Adjust)
 	}
 }

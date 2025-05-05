@@ -1,6 +1,8 @@
 ---
+name: "Raze"
+
 node_count: 20
-simulation_time_in_seconds: 2635200
+simulation_time_in_seconds: 604800
 
 average_network_latency_in_seconds: 6
 chain_reorganization_threshold: 6
@@ -18,4 +20,4 @@ slimcoin_proof_of_burn:
 
 razer_proof_of_burn:
   enabled: true
-  interval: 0.25
+  interval: 0.5

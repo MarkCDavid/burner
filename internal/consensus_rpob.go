@@ -51,6 +51,7 @@ func (c *Consensus_RPoB) GetPower() float64 {
 
 func (c *Consensus_RPoB) Initialize() {
 	c.Difficulty = c.Interval * float64(len(c.Node.Simulation.Nodes))
+	c.Node.Simulation.Database.SaveRazerProofOfBurnConsensus(c, Initialize)
 }
 
 func (c *Consensus_RPoB) CanMine(event Event) bool {
@@ -59,21 +60,22 @@ func (c *Consensus_RPoB) CanMine(event Event) bool {
 	}
 
 	chance := float64(1) / c.Difficulty
-	if chance > 1 {
-		chance = 0.995
+	if chance > 0.99 {
+		chance = 0.99
 	}
 	return c.Node.Simulation.Random.Chance(chance)
 }
 
 func (c *Consensus_RPoB) GetNextMiningTime(event *Event_BlockMined) float64 {
 	// Computing 1 hash takes barely any time.
-	return c.Node.Simulation.CurrentTime + 1
+	return c.Node.Simulation.CurrentTime + c.Node.Simulation.Random.Float() + 0.5
+
 }
 
 func (c *Consensus_RPoB) Synchronize(consensus Consensus) {
 	_, ok := consensus.(*Consensus_RPoB)
 	if !ok {
-		panic("not a rezer proof of burn difficulty")
+		return
 	}
 }
 

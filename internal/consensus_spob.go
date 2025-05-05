@@ -48,7 +48,10 @@ func (c *Consensus_SPoB) GetType() ConsensusType {
 	return ProofOfBurn
 }
 
-func (c *Consensus_SPoB) Initialize() {}
+func (c *Consensus_SPoB) Initialize() {
+	c.Node.Simulation.Database.SaveSlimcoinProofOfBurnConsensus(c, Initialize)
+
+}
 
 func (c *Consensus_SPoB) CanMine(event Event) bool {
 	if !c.Enabled {
@@ -70,13 +73,13 @@ func (c *Consensus_SPoB) CanMine(event Event) bool {
 
 func (c *Consensus_SPoB) GetNextMiningTime(event *Event_BlockMined) float64 {
 	// Computing 1 hash takes barely any time.
-	return c.Node.Simulation.CurrentTime + 1
+	return c.Node.Simulation.CurrentTime + c.Node.Simulation.Random.Float() + 0.5
 }
 
 func (c *Consensus_SPoB) Synchronize(consensus Consensus) {
 	_, ok := consensus.(*Consensus_SPoB)
 	if !ok {
-		panic("not a slimcoin proof of burn difficulty")
+		return
 	}
 }
 
@@ -102,4 +105,6 @@ func (c *Consensus_SPoB) Adjust(event Event) {
 	}
 
 	c.Difficulty *= deviation
+
+	c.Node.Simulation.Database.SaveSlimcoinProofOfBurnConsensus(c, Adjust)
 }
