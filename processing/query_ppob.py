@@ -7,7 +7,7 @@ QUERY_PPOB_CONSENSUS = """
 SELECT 
     *
 FROM pricing_proof_of_burn_burn_consensus
-ORDER BY timestamp DESC;
+ORDER BY timestamp ASC;
 """
 
 

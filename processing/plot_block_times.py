@@ -49,7 +49,7 @@ def plot_block_times_by_type_smoothed(
             records.append(
                 {
                     "timestamp": block.startedAt,
-                    "duration": block.duration_since_previous_type(blocks),
+                    "duration": block.duration_since_previous(blocks),
                     "blockType": block.blockType,
                 }
             )

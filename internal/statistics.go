@@ -13,6 +13,7 @@ type Statistics struct {
 	BlocksMined           [2]int64
 	TransactionsProcessed [2]int64
 	BlockMiningTime       [2]float64
+	BlockIntervalTime     [2]float64
 	PerNode               []NodeStatistics
 
 	ForkResolutions int64
@@ -41,6 +42,7 @@ func (s *Statistics) OnBlockMined(simulation *Simulation, event *Event_BlockMine
 	s.BlocksMined[consensusType] += 1
 	s.TransactionsProcessed[consensusType] += event.Block.Transactions
 	s.BlockMiningTime[consensusType] += event.Block.FinishedAt - event.Block.StartedAt
+	s.BlockIntervalTime[consensusType] += event.Block.FinishedAt - event.PreviousBlock.FinishedAt
 
 	s.PerNode[node].BlocksMined[consensusType] += 1
 	s.PerNode[node].PowerUsed[consensusType] += event.PowerUsed()

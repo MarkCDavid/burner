@@ -81,6 +81,7 @@ class PPOBPricing:
     id: int
     timestamp: float
     nodeId: int
+    currentlyAt: int
     price: float
 
     @classmethod
@@ -89,5 +90,6 @@ class PPOBPricing:
             id=int(values[0]),
             timestamp=float(values[1]),
             nodeId=int(values[2]),
-            price=float(values[3]),
+            currentlyAt=int(values[3]),
+            price=float(values[4]),
         )
