@@ -124,4 +124,5 @@ func (s *Simulation) Simulate() {
 	s.Database.Close()
 
 	logrus.Infof("Simulation ran for: %f", s.CurrentTime)
+	logrus.Infof("Simulation mined : %d", s.Statistics.GetTotalBlocks())
 }
