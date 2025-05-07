@@ -52,7 +52,7 @@ func FormatBytes(size uint64) string {
 	return fmt.Sprintf("%v %s", size, units[i])
 }
 
-func ClampFloat64(x float64) float64 {
+func ClampPositiveFloat64(x float64) float64 {
 	switch {
 	case x == 0:
 		return math.SmallestNonzeroFloat64
@@ -65,40 +65,13 @@ func ClampFloat64(x float64) float64 {
 	}
 }
 
-type SlidingWindow struct {
-	values []float64
-	size   int
-	start  int
-	count  int
-	sum    float64
-}
-
-func NewSlidingWindow(size int) *SlidingWindow {
-	return &SlidingWindow{
-		values: make([]float64, size),
-		size:   size,
+func ClampFloat64(x float64, min float64, max float64) float64 {
+	switch {
+	case x < min:
+		return min
+	case x > max:
+		return max
+	default:
+		return x
 	}
-}
-
-func (sw *SlidingWindow) Add(value float64) {
-	if sw.count == sw.size {
-		sw.sum -= sw.values[sw.start]
-	} else {
-		sw.count++
-	}
-
-	sw.values[sw.start] = value
-	sw.sum += value
-	sw.start = (sw.start + 1) % sw.size
-}
-
-func (sw *SlidingWindow) Sum() float64 {
-	return sw.sum
-}
-
-func (sw *SlidingWindow) Average() float64 {
-	if sw.count == 0 {
-		return 0
-	}
-	return sw.sum / float64(sw.count)
 }

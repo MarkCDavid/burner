@@ -1,7 +1,7 @@
 from typing import List, Dict
 import matplotlib.pyplot as plt
 import pandas as pd
-from model import Block, PPOBPricing
+from model import Block, POWPricing, PPOBPricing
 
 
 def plot_block_times_by_type(blocks: Dict[int, Block]):
@@ -32,7 +32,11 @@ def plot_block_times_by_type(blocks: Dict[int, Block]):
 
 
 def plot_block_times_by_type_smoothed(
-    blocks: Dict[int, Block], consensus: List[PPOBPricing], window_size=1000, name="N/A"
+    blocks: Dict[int, Block],
+    consensusPow: List[POWPricing],
+    consensus: List[PPOBPricing],
+    window_size=1000,
+    name="N/A",
 ):
     # Process blocks
     records = []
@@ -60,11 +64,31 @@ def plot_block_times_by_type_smoothed(
     )
 
     # Process consensus pricing
-    df_price = pd.DataFrame([vars(p) for p in consensus]).sort_values(by="timestamp")
-    df_price = df_price.groupby("timestamp")["price"].mean().reset_index()
-    df_price["rolling_avg"] = (
-        df_price["price"].rolling(window=window_size, min_periods=window_size).mean()
-    )
+    df_price = None
+    if consensus:
+        df_price = pd.DataFrame([vars(p) for p in consensus]).sort_values(
+            by="timestamp"
+        )
+        df_price = df_price.groupby("timestamp")["price"].mean().reset_index()
+        df_price["rolling_avg"] = (
+            df_price["price"]
+            .rolling(window=window_size, min_periods=window_size)
+            .mean()
+        )
+
+    df_difficulty = None
+    if consensusPow:
+        df_difficulty = pd.DataFrame([vars(p) for p in consensusPow]).sort_values(
+            by="timestamp"
+        )
+        df_difficulty = (
+            df_difficulty.groupby("timestamp")["difficulty"].mean().reset_index()
+        )
+        df_difficulty["rolling_avg"] = (
+            df_difficulty["difficulty"]
+            .rolling(window=window_size, min_periods=window_size)
+            .mean()
+        )
 
     # Plot
     fig, ax1 = plt.subplots(figsize=(12, 6))
@@ -86,14 +110,26 @@ def plot_block_times_by_type_smoothed(
 
     # Price consensus (right y-axis)
     ax2 = ax1.twinx()
-    ax2.plot(
-        df_price["timestamp"],
-        df_price["rolling_avg"],
-        color="orange",
-        label="PPOB Price (avg)",
-    )
-    ax2.set_ylabel("PPOB Consensus Price")
-    ax2.legend(loc="upper right")
+    if df_price is not None:
+        ax2.plot(
+            df_price["timestamp"],
+            df_price["rolling_avg"],
+            color="orange",
+            label="PPOB Price (avg)",
+        )
+        ax2.set_ylabel("PPOB Consensus Price")
+        ax2.legend(loc="upper right")
+
+    ax3 = ax2.twinx()
+    if df_difficulty is not None:
+        ax3.plot(
+            df_difficulty["timestamp"],
+            df_difficulty["rolling_avg"],
+            color="brown",
+            label="POW Difficulty (avg)",
+        )
+        ax3.set_ylabel("POW Difficulty")
+        ax3.legend(loc="upper right")
 
     plt.title("Block Production Time and PPOB Consensus Price (Smoothed)")
     manager = plt.gcf().canvas.manager

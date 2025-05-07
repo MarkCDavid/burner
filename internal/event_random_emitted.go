@@ -31,9 +31,7 @@ func (simulation *Simulation) ScheduleEmitRandomEvent(tick int64, delay float64)
 	simulation.Events.Push(events)
 }
 
-func (e *Event_RandomEmitted) Duration() float64 {
-	return 0
-}
+// === Interface ===
 
 func (e *Event_RandomEmitted) GetIndex() int {
 	return e.Index

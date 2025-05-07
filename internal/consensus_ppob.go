@@ -22,13 +22,13 @@ func AddConsensus_PPoB(node *Node) {
 
 		Node: node,
 
-		Power: node.Simulation.Random.LogNormal(AveragePowerUsage_Node_ProofOfBurn),
+		// Power: node.Simulation.Random.LogNormal(AveragePowerUsage_Node_ProofOfBurn),
 
 		ExpectedBlockFrequency: configuration.AverageBlockFrequencyInSeconds,
 
 		BurnParticipationChance: configuration.ParticipationPercentage,
 
-		WindowTime:    *NewSlidingWindow(1024),
+		WindowTime:    *NewSWFloat64(1024),
 		SettledPeriod: configuration.SettledPeriod,
 		WorkingPeriod: configuration.WorkingPeriod,
 	}
@@ -74,7 +74,7 @@ type Consensus_PPoB struct {
 	SettledPeriod int64
 	WorkingPeriod int64
 
-	WindowTime       SlidingWindow
+	WindowTime       SWFloat64
 	BurnTransactions []BurnTransaction
 }
 
@@ -161,16 +161,17 @@ func (c *Consensus_PPoB) Adjust(event Event) {
 
 	blockMinedEvent, ok := event.(*Event_BlockMined)
 	if ok {
-		// if blockMinedEvent.Block.Consensus.GetType() != ProofOfBurn {
-		// 	return
-		// }
+		if blockMinedEvent.Block.Consensus.GetType() != ProofOfBurn {
+			return
+		}
 
-		c.WindowTime.Add(blockMinedEvent.Block.FinishedAt - blockMinedEvent.PreviousBlock.FinishedAt)
+		c.WindowTime.Add(blockMinedEvent.IntervalDuration())
 
 		// c.AdjustPrice(blockMinedEvent)
 		c.PriceAdjustmentIndex++
-		if c.PriceAdjustmentIndex >= c.Node.Simulation.Configuration.PricingProofOfBurn.WorkingPeriod/4 {
-
+		// if c.PriceAdjustmentIndex >= c.Node.Simulation.Configuration.PricingProofOfBurn.WorkingPeriod/4 {
+		// if c.PriceAdjustmentIndex >= c.Node.Simulation.Configuration.PricingProofOfBurn.WorkingPeriod*8 {
+		if c.PriceAdjustmentIndex >= 2016 {
 			c.AdjustPrice(blockMinedEvent)
 			c.PriceAdjustmentIndex = 0
 		}
@@ -189,9 +190,7 @@ func (c *Consensus_PPoB) AdjustPrice(blockMinedEvent *Event_BlockMined) {
 
 	// averageBlockFrequency := blockMinedEvent.Block.FinishedAt - blockMinedEvent.PreviousBlock.FinishedAt
 
-	averageBlockFrequency := c.WindowTime.Average()
-
-	deviation := c.ExpectedBlockFrequency / averageBlockFrequency
+	deviation := c.ExpectedBlockFrequency / c.WindowTime.Average()
 	// deviation := averageBlockFrequency / c.ExpectedBlockFrequency
 
 	// if deviation > 4 {
@@ -201,15 +200,15 @@ func (c *Consensus_PPoB) AdjustPrice(blockMinedEvent *Event_BlockMined) {
 	// 	deviation = 0.25
 	// }
 
-	if deviation > 1.1 {
-		deviation = 1.1
+	if deviation > 4 {
+		deviation = 4
 	}
-	if deviation < 0.9 {
-		deviation = 0.9
+	if deviation < 0.25 {
+		deviation = 0.25
 	}
 
 	c.Price *= deviation
-	c.Price = ClampFloat64(c.Price)
+	c.Price = ClampPositiveFloat64(c.Price)
 
 	// logrus.Info(c.Price)
 	c.Node.Simulation.Database.SavePricingProofOfBurnConsensus(c, Adjust)

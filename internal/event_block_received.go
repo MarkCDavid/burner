@@ -28,7 +28,6 @@ func (event *Event_BlockReceived) Handle() {
 	deepEnough := reorganizationThreshold <= event.Block.Depth
 
 	if deepEnough {
-		event.Simulation.Statistics.ForkResolutions++
 		event.Reorganize()
 		return
 	}
@@ -42,7 +41,7 @@ func (event *Event_BlockReceived) Reorganize() {
 		if event.ReceivedBy.Event != nil {
 			event.ReceivedBy.Event.Block.Abandoned = true
 			event.ReceivedBy.Event.Block.FinishedAt = event.ReceivedBy.Simulation.CurrentTime
-			event.ReceivedBy.Simulation.Statistics.OnBlockAbandoned(event.Simulation, event.ReceivedBy.Event)
+			event.Simulation.Database.SaveBlock(event.ReceivedBy.Event)
 			event.Simulation.Events.Remove(event.ReceivedBy.Event)
 		}
 	}
@@ -89,9 +88,7 @@ func (simulation *Simulation) ScheduleBlockReceivedEvent(receivedBy *Node, event
 	simulation.Events.Push(e)
 }
 
-func (e *Event_BlockReceived) Duration() float64 {
-	return e.DispatchAt - e.ScheduledAt
-}
+// === Interface ===
 
 func (e *Event_BlockReceived) GetIndex() int {
 	return e.Index

@@ -39,9 +39,7 @@ func (simulation *Simulation) ScheduleRandomReceivedEvent(receivedBy *Node, tick
 	simulation.Events.Push(events)
 }
 
-func (e *Event_RandomReceived) Duration() float64 {
-	return 0
-}
+// === Interface ===
 
 func (e *Event_RandomReceived) GetIndex() int {
 	return e.Index

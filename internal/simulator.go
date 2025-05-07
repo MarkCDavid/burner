@@ -21,8 +21,6 @@ type Simulation struct {
 	CurrentTime float64
 	ProgressBar *pb.ProgressBar
 
-	Statistics Statistics
-
 	Database *SQLite
 }
 
@@ -42,13 +40,7 @@ func NewSimulation(configuration_path string) *Simulation {
 
 		CurrentTime: 0,
 		ProgressBar: pb.StartNew(int(configuration.SimulationTime)),
-		Statistics: Statistics{
-			BlocksMined:           [2]int64{},
-			TransactionsProcessed: [2]int64{},
-			BlockMiningTime:       [2]float64{},
-			PerNode:               make([]NodeStatistics, 0),
-		},
-		Database: NewSQLite(databasePath),
+		Database:    NewSQLite(databasePath),
 	}
 }
 
@@ -63,7 +55,6 @@ func (s *Simulation) InitializeNodes() {
 	for nodeIndex := int64(0); nodeIndex < s.Configuration.NodeCount; nodeIndex++ {
 		node := NewNode(s)
 		s.Nodes = append(s.Nodes, node)
-		s.Statistics.PerNode = append(s.Statistics.PerNode, NodeStatistics{})
 	}
 
 	for _, node := range s.Nodes {
@@ -124,5 +115,4 @@ func (s *Simulation) Simulate() {
 	s.Database.Close()
 
 	logrus.Infof("Simulation ran for: %f", s.CurrentTime)
-	logrus.Infof("Simulation mined : %d", s.Statistics.GetTotalBlocks())
 }

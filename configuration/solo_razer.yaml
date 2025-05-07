@@ -18,4 +18,4 @@ slimcoin_proof_of_burn:
 
 razer_proof_of_burn:
   enabled: true
-  interval: 0.5
+  interval: 0.7
