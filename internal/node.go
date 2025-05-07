@@ -1,10 +1,10 @@
 package internal
 
 func NewNode(simulation *Simulation) *Node {
-
 	node := &Node{
 		Id:         int64(len(simulation.Nodes)),
 		Simulation: simulation,
+		Power:      simulation.Random.LogNormal(AveragePowerUsage_Node),
 	}
 
 	AddConsensus_PPoB(node)
@@ -32,6 +32,8 @@ type Node struct {
 
 	Event         *Event_BlockMined
 	PreviousBlock *Block
+
+	Power float64
 
 	ProofOfWork Consensus
 	ProofOfBurn Consensus

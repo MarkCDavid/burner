@@ -1,7 +1,5 @@
 package internal
 
-// import "github.com/sirupsen/logrus"
-
 type Event_BlockMined struct {
 	Simulation *Simulation
 
@@ -19,8 +17,6 @@ type Event_BlockMined struct {
 func (event *Event_BlockMined) Handle() {
 	event.Block.FinishedAt = event.Simulation.CurrentTime
 	event.MinedBy.PreviousBlock = event.Block
-	// logrus.Infof("%d mined %s block (%d <- %d)", event.MinedBy.Id, event.Block.Consensus.GetType().ToString(), event.PreviousBlock.Id, event.Block.Id)
-	event.Simulation.Statistics.OnBlockMined(event.MinedBy.Simulation, event)
 
 	if event.MinedBy.ProofOfWork != nil {
 		event.MinedBy.ProofOfWork.Adjust(event)
@@ -32,6 +28,7 @@ func (event *Event_BlockMined) Handle() {
 
 	event.MinedBy.Transactions += event.Block.Transactions
 
+	event.Simulation.Database.SaveBlock(event)
 	for _, node := range event.MinedBy.Simulation.Nodes {
 		event.Simulation.ScheduleBlockReceivedEvent(node, event)
 	}
@@ -99,13 +96,21 @@ func (simulation *Simulation) ScheduleBlockMinedEvent(
 	simulation.Events.Push(event)
 }
 
-func (e *Event_BlockMined) PowerUsed() float64 {
-	return e.Duration() * e.Block.Consensus.GetPower()
+// === Time ===
+
+func (e *Event_BlockMined) MiningDuration() float64 {
+	return e.Block.FinishedAt - e.Block.StartedAt
 }
 
-func (e *Event_BlockMined) Duration() float64 {
-	return e.Simulation.CurrentTime - e.PreviousBlock.FinishedAt
+func (e *Event_BlockMined) IntervalDuration() float64 {
+	return e.Block.FinishedAt - e.PreviousBlock.FinishedAt
 }
+
+func (e *Event_BlockMined) PowerUsed() float64 {
+	return e.MiningDuration() * e.MinedBy.Power
+}
+
+// === Interface ===
 
 func (e *Event_BlockMined) GetIndex() int {
 	return e.Index

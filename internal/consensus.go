@@ -31,7 +31,6 @@ func (t ConsensusType) ToString() string {
 type Consensus interface {
 	Initialize()
 
-	GetPower() float64
 	GetType() ConsensusType
 
 	CanMine(event Event) bool

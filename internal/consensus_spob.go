@@ -18,7 +18,7 @@ func AddConsensus_SPoB(node *Node) {
 
 		Node: node,
 
-		Power: node.Simulation.Random.LogNormal(AveragePowerUsage_Node_ProofOfBurn),
+		BlocksMined: *NewSWCounterInt64[ConsensusType](1008),
 
 		Ratio:      float64(1) / configuration.Interval,
 		Difficulty: float64(1),
@@ -36,6 +36,8 @@ type Consensus_SPoB struct {
 	Node *Node
 
 	Power float64
+
+	BlocksMined SWCounterInt64[ConsensusType]
 
 	Ratio      float64
 	Difficulty float64
@@ -73,7 +75,7 @@ func (c *Consensus_SPoB) CanMine(event Event) bool {
 
 func (c *Consensus_SPoB) GetNextMiningTime(event *Event_BlockMined) float64 {
 	// Computing 1 hash takes barely any time.
-	return c.Node.Simulation.CurrentTime + c.Node.Simulation.Random.Float() + 0.5
+	return c.Node.Simulation.CurrentTime + c.Node.Simulation.Random.Float()*0.5
 }
 
 func (c *Consensus_SPoB) Synchronize(consensus Consensus) {
@@ -84,19 +86,25 @@ func (c *Consensus_SPoB) Synchronize(consensus Consensus) {
 }
 
 func (c *Consensus_SPoB) Adjust(event Event) {
+	// We calculate the ratio between PoW and PoB blocks
+	blockReceivedEvent, ok := event.(*Event_BlockReceived)
+	if ok {
+		c.BlocksMined.Add(blockReceivedEvent.Block.Consensus.GetType())
+		return
+	}
+
 	blockMinedEvent, ok := event.(*Event_BlockMined)
 	if !ok {
 		return
 	}
-	if blockMinedEvent.Block.Consensus.GetType() != c.GetType() {
+
+	// If the block mined is a PoB block, we will adjust difficulty.
+	if blockMinedEvent.Block.Consensus.GetType() != ProofOfBurn {
 		return
 	}
 
-	powBlocksMined := blockMinedEvent.MinedBy.Simulation.Statistics.BlocksMined[ProofOfWork]
-	pobBlocksMined := blockMinedEvent.MinedBy.Simulation.Statistics.BlocksMined[ProofOfBurn]
-
-	actualRatio := float64(pobBlocksMined) / float64(powBlocksMined)
-	deviation := actualRatio / c.Ratio
+	ratio := float64(c.BlocksMined.Get(ProofOfBurn)) / float64(c.BlocksMined.Get(ProofOfWork))
+	deviation := ratio / c.Ratio
 
 	if deviation > 4.0 {
 		deviation = 4.0

@@ -77,6 +77,25 @@ class BlockMiningAverages:
 
 
 @dataclass
+class POWPricing:
+    id: int
+    timestamp: float
+    nodeId: int
+    difficulty: float
+    eventType: int
+
+    @classmethod
+    def from_values(cls, values):
+        return cls(
+            id=int(values[0]),
+            timestamp=float(values[1]),
+            nodeId=int(values[2]),
+            difficulty=float(values[3]),
+            eventType=int(values[4]),
+        )
+
+
+@dataclass
 class PPOBPricing:
     id: int
     timestamp: float

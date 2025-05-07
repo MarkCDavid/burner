@@ -45,11 +45,12 @@ func init() {
 	}
 }
 
-// const (
-// 	FLAG_CONFIGURATION_PATH = "configuration"
-// 	FLAG_SEED               = "seed"
-// 	FLAG_RUNS               = "runs"
-// )
+const (
+	FLAG_CONFIGURATION_PATH = "configuration"
+
+// FLAG_SEED               = "seed"
+// FLAG_RUNS               = "runs"
+)
 
 /* func main() { */
 // configuration_path := flag.String(FLAG_CONFIGURATION_PATH, "./configuration/default.yaml", "Path to the yaml configuration for the simulator")

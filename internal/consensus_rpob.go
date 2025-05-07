@@ -16,8 +16,6 @@ func AddConsensus_RPoB(node *Node) {
 	node.ProofOfBurn = &Consensus_RPoB{
 		Enabled: configuration.Enabled,
 
-		Power: node.Simulation.Random.LogNormal(AveragePowerUsage_Node_ProofOfBurn),
-
 		Node: node,
 
 		Interval:   configuration.Interval,
@@ -59,25 +57,14 @@ func (c *Consensus_RPoB) CanMine(event Event) bool {
 		return false
 	}
 
-	chance := float64(1) / c.Difficulty
-	if chance > 0.99 {
-		chance = 0.99
-	}
+	chance := ClampFloat64(float64(1)/c.Difficulty, 0, 1)
 	return c.Node.Simulation.Random.Chance(chance)
 }
 
 func (c *Consensus_RPoB) GetNextMiningTime(event *Event_BlockMined) float64 {
 	// Computing 1 hash takes barely any time.
 	return c.Node.Simulation.CurrentTime + c.Node.Simulation.Random.Float() + 0.5
-
 }
 
-func (c *Consensus_RPoB) Synchronize(consensus Consensus) {
-	_, ok := consensus.(*Consensus_RPoB)
-	if !ok {
-		return
-	}
-}
-
-func (c *Consensus_RPoB) Adjust(event Event) {
-}
+func (c *Consensus_RPoB) Synchronize(consensus Consensus) {}
+func (c *Consensus_RPoB) Adjust(event Event)              {}
