@@ -22,13 +22,17 @@ func AddConsensus_PPoB(node *Node) {
 
 		Node: node,
 
-		// Power: node.Simulation.Random.LogNormal(AveragePowerUsage_Node_ProofOfBurn),
+		Price:      configuration.AveragePrice,
+		BurnBudget: node.Simulation.Random.LogNormal(configuration.AveragePrice * 2),
 
-		ExpectedBlockFrequency: configuration.AverageBlockFrequencyInSeconds,
+		EpochIndex:  0,
+		EpochLength: configuration.EpochLength,
 
-		BurnParticipationChance: configuration.ParticipationPercentage,
+		EpochTimeElapsed: 0,
+		EpochTimeAverage: configuration.AverageBlockFrequencyInSeconds,
 
-		WindowTime:    *NewSWFloat64(1024),
+		Difficulty: float64(node.Simulation.Configuration.NodeCount) * (configuration.AverageBlockFrequencyInSeconds / 100.0),
+
 		SettledPeriod: configuration.SettledPeriod,
 		WorkingPeriod: configuration.WorkingPeriod,
 	}
@@ -37,18 +41,13 @@ func (c *Consensus_PPoB) GetType() ConsensusType {
 	return ProofOfBurn
 }
 
-func (c *Consensus_PPoB) GetPower() float64 {
-	return c.Power
-}
-
 type Consensus_PPoB_Configuration struct {
 	Enabled bool `yaml:"enabled"`
 
-	ParticipationPercentage float64 `yaml:"participation_percentage"`
+	EpochLength int64 `yaml:"epoch_length"`
 
+	AveragePrice                   float64 `yaml:"average_price"`
 	AverageBlockFrequencyInSeconds float64 `yaml:"average_block_frequency_in_seconds"`
-
-	PriceEpochLength int64 `yaml:"price_epoch_length"`
 
 	SettledPeriod int64 `yaml:"settled_period"`
 	WorkingPeriod int64 `yaml:"working_period"`
@@ -59,22 +58,20 @@ type Consensus_PPoB struct {
 
 	Node *Node
 
-	Power float64
+	EpochIndex  int64
+	EpochLength int64
 
-	ExpectedBlockFrequency float64
+	EpochTimeElapsed float64
+	EpochTimeAverage float64
 
-	Price                float64
-	PriceAdjustmentIndex int64
+	Price      float64
+	BurnBudget float64
 
 	Difficulty float64
-
-	BurnBudget              float64
-	BurnParticipationChance float64
 
 	SettledPeriod int64
 	WorkingPeriod int64
 
-	WindowTime       SWFloat64
 	BurnTransactions []BurnTransaction
 }
 
@@ -82,7 +79,6 @@ type BurnTransaction struct {
 	BurnedBy  *Node
 	BurnedAt  int64
 	BurnedFor float64
-	Power     float64
 }
 
 func (c *Consensus_PPoB) Delta(t BurnTransaction) int64 {
@@ -107,12 +103,6 @@ func (c *Consensus_PPoB) BurnDecay(t BurnTransaction) float64 {
 }
 
 func (c *Consensus_PPoB) Initialize() {
-	// c.Price = c.Node.Simulation.Random.LogNormal(AverageBurnTransaction_Consensus_PriceProofOfBurn)
-	c.Price = 1
-	c.BurnBudget = c.Node.Simulation.Random.LogNormal(AverageBurnBudget_Consensus_PriceProofOfBurn)
-
-	c.Difficulty = 10000
-
 	c.Node.Simulation.Database.SavePricingProofOfBurnConsensus(c, Initialize)
 	c.Burn(0)
 }
@@ -148,7 +138,8 @@ func (c *Consensus_PPoB) Synchronize(consensus Consensus) {
 	}
 
 	c.Price = other.Price
-	c.PriceAdjustmentIndex = other.PriceAdjustmentIndex
+	c.EpochIndex = other.EpochIndex
+	c.EpochTimeElapsed = other.EpochTimeElapsed
 
 	c.Node.Simulation.Database.SavePricingProofOfBurnConsensus(c, Synchronize)
 }
@@ -157,23 +148,22 @@ func (c *Consensus_PPoB) Adjust(event Event) {
 	c.BurnTransactions = Filter(c.BurnTransactions, func(t BurnTransaction) bool {
 		return c.Delta(t) < c.WorkingPeriod
 	})
-	// logrus.Info(len(c.BurnTransactions))
 
 	blockMinedEvent, ok := event.(*Event_BlockMined)
 	if ok {
+
 		if blockMinedEvent.Block.Consensus.GetType() != ProofOfBurn {
 			return
 		}
 
-		c.WindowTime.Add(blockMinedEvent.IntervalDuration())
+		c.EpochIndex++
+		c.EpochTimeElapsed += blockMinedEvent.IntervalDuration()
 
-		// c.AdjustPrice(blockMinedEvent)
-		c.PriceAdjustmentIndex++
-		// if c.PriceAdjustmentIndex >= c.Node.Simulation.Configuration.PricingProofOfBurn.WorkingPeriod/4 {
-		// if c.PriceAdjustmentIndex >= c.Node.Simulation.Configuration.PricingProofOfBurn.WorkingPeriod*8 {
-		if c.PriceAdjustmentIndex >= 2016 {
+		if c.EpochIndex >= c.EpochLength {
 			c.AdjustPrice(blockMinedEvent)
-			c.PriceAdjustmentIndex = 0
+
+			c.EpochIndex = 0
+			c.EpochTimeElapsed = 0
 		}
 		return
 	}
@@ -186,19 +176,8 @@ func (c *Consensus_PPoB) Adjust(event Event) {
 }
 
 func (c *Consensus_PPoB) AdjustPrice(blockMinedEvent *Event_BlockMined) {
-	// averageBlockFrequency := c.Node.Simulation.Statistics.BlockIntervalTime[ProofOfBurn] / float64(c.Node.Simulation.Statistics.BlocksMined[ProofOfBurn])
-
-	// averageBlockFrequency := blockMinedEvent.Block.FinishedAt - blockMinedEvent.PreviousBlock.FinishedAt
-
-	deviation := c.ExpectedBlockFrequency / c.WindowTime.Average()
-	// deviation := averageBlockFrequency / c.ExpectedBlockFrequency
-
-	// if deviation > 4 {
-	// 	deviation = 4
-	// }
-	// if deviation < 0.25 {
-	// 	deviation = 0.25
-	// }
+	average := c.EpochTimeElapsed / float64(c.EpochLength)
+	deviation := c.EpochTimeAverage / average
 
 	if deviation > 4 {
 		deviation = 4
@@ -208,18 +187,11 @@ func (c *Consensus_PPoB) AdjustPrice(blockMinedEvent *Event_BlockMined) {
 	}
 
 	c.Price *= deviation
-	c.Price = ClampPositiveFloat64(c.Price)
-
-	// logrus.Info(c.Price)
+	// c.Price = ClampPositiveFloat64(c.Price)
 	c.Node.Simulation.Database.SavePricingProofOfBurnConsensus(c, Adjust)
 }
 
 func (c *Consensus_PPoB) Burn(depth int64) {
-	// participates := c.Node.Simulation.Random.Chance(c.BurnParticipationChance / float64(10*len(c.Node.Simulation.Nodes)))
-	// if len(c.BurnTransactions) > 0 && !participates {
-	// 	return
-	// }
-
 	var totalSpent float64 = 0
 	for _, burnTransaction := range c.BurnTransactions {
 		totalSpent += burnTransaction.BurnedFor
@@ -231,7 +203,6 @@ func (c *Consensus_PPoB) Burn(depth int64) {
 			BurnedBy:  c.Node,
 			BurnedAt:  depth,
 			BurnedFor: c.Price,
-			Power:     1,
 		}
 
 		c.BurnTransactions = append(c.BurnTransactions, bt)
@@ -245,19 +216,14 @@ func (c *Consensus_PPoB) Burn(depth int64) {
 		pricePenalty := math.Exp(-overBudgetRatio * 10)
 
 		if !c.Node.Simulation.Random.Chance(pricePenalty) {
-
-			// logrus.Infof("NOT BURN | Spent: %f Willing: %f Budget: %f", totalSpent, willingToSpend, c.BurnBudget)
 			return
 		}
-		// logrus.Infof("BURN | Spent: %f Willing: %f Budget: %f", totalSpent, willingToSpend, c.BurnBudget)
-
 	}
 
 	bt := BurnTransaction{
 		BurnedBy:  c.Node,
 		BurnedAt:  depth,
 		BurnedFor: c.Price,
-		Power:     1,
 	}
 
 	c.BurnTransactions = append(c.BurnTransactions, bt)
