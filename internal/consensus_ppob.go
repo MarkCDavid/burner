@@ -167,8 +167,9 @@ func (c *Consensus_PPoB) Adjust(event Event) {
 
 		c.WindowTime.Add(blockMinedEvent.Block.FinishedAt - blockMinedEvent.PreviousBlock.FinishedAt)
 
+		// c.AdjustPrice(blockMinedEvent)
 		c.PriceAdjustmentIndex++
-		if c.PriceAdjustmentIndex >= c.Node.Simulation.Configuration.PricingProofOfBurn.WorkingPeriod {
+		if c.PriceAdjustmentIndex >= c.Node.Simulation.Configuration.PricingProofOfBurn.WorkingPeriod/4 {
 
 			c.AdjustPrice(blockMinedEvent)
 			c.PriceAdjustmentIndex = 0
@@ -226,6 +227,18 @@ func (c *Consensus_PPoB) Burn(depth int64) {
 	}
 
 	newTotal := totalSpent + c.Price
+	for newTotal < c.BurnBudget {
+		bt := BurnTransaction{
+			BurnedBy:  c.Node,
+			BurnedAt:  depth,
+			BurnedFor: c.Price,
+			Power:     1,
+		}
+
+		c.BurnTransactions = append(c.BurnTransactions, bt)
+		totalSpent += newTotal
+		newTotal = totalSpent + c.Price
+	}
 
 	if newTotal > c.BurnBudget {
 		overBudgetRatio := (newTotal - c.BurnBudget) / c.BurnBudget
