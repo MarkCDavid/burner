@@ -24,8 +24,11 @@ razer_proof_of_burn:
 
 pricing_proof_of_burn:
   enabled: true
+  epoch_length: 1000
 
   average_block_frequency_in_seconds: 600
+
+  average_price: 100
 
   settled_period: 10
   working_period: 1000
