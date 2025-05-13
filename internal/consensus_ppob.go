@@ -22,7 +22,7 @@ func AddConsensus_PPoB(node *Node) {
 
 		Node: node,
 
-		Price:      configuration.AveragePrice,
+		Price:      1,
 		BurnBudget: node.Simulation.Random.LogNormal(configuration.AveragePrice * 2),
 
 		EpochIndex:  0,

@@ -5,23 +5,29 @@ import (
 )
 
 type NodesTable struct {
-	Id    int64
-	Power float64
+	Id           int64
+	PowerFull    float64
+	PowerIdle    float64
+	Transactions int64
 }
 
 func (db *SQLite) PrepareNodesTable() {
 	tableName := "nodes"
 	createTable := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
 		id INTEGER PRIMARY KEY, 
-		power REAL NOT NULL
+		powerFull REAL NOT NULL,
+		powerIdle REAL NOT NULL,
+		transactions INTEGER NOT NULL
 	);`, tableName,
 	)
 
 	insertInto := fmt.Sprintf(`
 	INSERT INTO %s (
     id,
-		power
-	) VALUES (?, ?);`,
+		powerFull,
+		powerIdle,
+		transactions
+	) VALUES (?, ?, ?, ?);`,
 		tableName,
 	)
 
@@ -34,8 +40,10 @@ func (db *SQLite) PrepareNodesTable() {
 
 func (db *SQLite) SaveNode(node *Node) {
 	db._nodes.Save(NodesTable{
-		Id:    node.Id,
-		Power: node.Power,
+		Id:           node.Id,
+		PowerFull:    node.PowerFull,
+		PowerIdle:    node.PowerIdle,
+		Transactions: node.Transactions,
 	})
 
 }

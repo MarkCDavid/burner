@@ -43,10 +43,6 @@ func (c *Consensus_RPoB) GetType() ConsensusType {
 	return ProofOfBurn
 }
 
-func (c *Consensus_RPoB) GetPower() float64 {
-	return c.Power
-}
-
 func (c *Consensus_RPoB) Initialize() {
 	c.Difficulty = c.Interval * float64(len(c.Node.Simulation.Nodes))
 	c.Node.Simulation.Database.SaveRazerProofOfBurnConsensus(c, Initialize)

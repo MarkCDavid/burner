@@ -55,6 +55,18 @@ func NewSWCounterInt64[T comparable](size int64) *SWCounterInt64[T] {
 		size:   size,
 	}
 }
+func (sw *SWCounterInt64[T]) Synchronize(other *SWCounterInt64[T]) {
+	sw.size = other.size
+	sw.start = other.start
+	sw.count = other.count
+
+	sw.values = make([]T, sw.size)
+	sw.counts = make(map[T]int64)
+	for i := range other.values {
+		sw.values[i] = other.values[i]
+		sw.counts[other.values[i]]++
+	}
+}
 
 func (sw *SWCounterInt64[T]) Add(value T) {
 	if sw.count == sw.size {

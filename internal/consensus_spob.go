@@ -1,6 +1,10 @@
 package internal
 
-import "github.com/sirupsen/logrus"
+import (
+	// "fmt"
+
+	"github.com/sirupsen/logrus"
+)
 
 func AddConsensus_SPoB(node *Node) {
 	configuration := node.Simulation.Configuration.SlimcoinProofOfBurn
@@ -18,7 +22,7 @@ func AddConsensus_SPoB(node *Node) {
 
 		Node: node,
 
-		BlocksMined: *NewSWCounterInt64[ConsensusType](1008),
+		BlocksMined: *NewSWCounterInt64[ConsensusType](2016),
 
 		Ratio:      float64(1) / configuration.Interval,
 		Difficulty: float64(1),
@@ -43,16 +47,12 @@ type Consensus_SPoB struct {
 	Difficulty float64
 }
 
-func (c *Consensus_SPoB) GetPower() float64 {
-	return c.Power
-}
 func (c *Consensus_SPoB) GetType() ConsensusType {
 	return ProofOfBurn
 }
 
 func (c *Consensus_SPoB) Initialize() {
 	c.Node.Simulation.Database.SaveSlimcoinProofOfBurnConsensus(c, Initialize)
-
 }
 
 func (c *Consensus_SPoB) CanMine(event Event) bool {
@@ -69,7 +69,7 @@ func (c *Consensus_SPoB) CanMine(event Event) bool {
 		return false
 	}
 
-	chance := float64(1) / c.Difficulty
+	chance := float64(1) / (float64(len(c.Node.Simulation.Nodes)) * c.Difficulty)
 	return c.Node.Simulation.Random.Chance(chance)
 }
 
@@ -79,10 +79,11 @@ func (c *Consensus_SPoB) GetNextMiningTime(event *Event_BlockMined) float64 {
 }
 
 func (c *Consensus_SPoB) Synchronize(consensus Consensus) {
-	_, ok := consensus.(*Consensus_SPoB)
+	spobConsensus, ok := consensus.(*Consensus_SPoB)
 	if !ok {
 		return
 	}
+	c.BlocksMined.Synchronize(&spobConsensus.BlocksMined)
 }
 
 func (c *Consensus_SPoB) Adjust(event Event) {
@@ -113,6 +114,9 @@ func (c *Consensus_SPoB) Adjust(event Event) {
 	}
 
 	c.Difficulty *= deviation
+	c.Difficulty = ClampPositiveFloat64(c.Difficulty)
+
+	// fmt.Println(ratio, c.Ratio, c.Difficulty)
 
 	c.Node.Simulation.Database.SaveSlimcoinProofOfBurnConsensus(c, Adjust)
 }

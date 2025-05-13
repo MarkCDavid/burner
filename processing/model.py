@@ -1,114 +1,93 @@
-from dataclasses import dataclass
-from typing import Dict
+import pandas as pd
+from database import Database
 
 
-@dataclass
-class LeafBlock:
-    id: int
-    depth: int
+def load_label(db: Database) -> str:
+    columns = ["id", "label"]
+    df = db.execute_df("label", columns)
+    if df.empty:
+        raise Exception("No label in database.")
 
-    @classmethod
-    def from_values(cls, values):
-        return cls(id=int(values[0]), depth=int(values[1]))
-
-
-@dataclass
-class Block:
-    id: int
-    previousBlockId: int
-    minedBy: int
-    depth: int
-    startedAt: float
-    finishedAt: float
-    abandoned: bool
-    transactions: int
-    blockType: int
-
-    def duration(self):
-        return self.finishedAt - self.startedAt
-
-    def duration_since_previous(self, blocks: "Dict[int, Block]"):
-        if self.previousBlockId == 0:
-            return self.startedAt
-        return self.startedAt - blocks[self.previousBlockId].finishedAt
-
-    def duration_since_previous_type(self, blocks: "Dict[int, Block]"):
-        if self.previousBlockId == 0:
-            return self.startedAt
-
-        previous = blocks[self.previousBlockId]
-        while previous.previousBlockId != 0:
-            if previous.blockType == self.blockType:
-                return self.startedAt - previous.finishedAt
-            previous = blocks[previous.previousBlockId]
-
-    @classmethod
-    def from_values(cls, values):
-        return cls(
-            id=int(values[0]),
-            previousBlockId=int(values[1]),
-            minedBy=int(values[2]),
-            depth=int(values[3]),
-            startedAt=float(values[4]),
-            finishedAt=float(values[5]),
-            abandoned=bool(values[6]),
-            transactions=int(values[7]),
-            blockType=int(values[8]),
-        )
+    return df.sample(1)["label"].iloc[0]
 
 
-@dataclass
-class BlockMiningAverages:
-    blockType: int
-    blockCount: int
-    averageBlockTime: float
-    minBlockTime: float
-    maxBlockTime: float
+def load_blocks(db: Database) -> pd.DataFrame:
+    columns = [
+        "id",
+        "previousBlockId",
+        "minedBy",
+        "depth",
+        "startedAt",
+        "finishedAt",
+        "previousFinishedAt",
+        "abandoned",
+        "transactions",
+        "blockType",
+    ]
 
-    @classmethod
-    def from_values(cls, values):
-        return cls(
-            blockType=int(values[0]),
-            blockCount=int(values[1]),
-            averageBlockTime=float(values[2]),
-            minBlockTime=float(values[3]),
-            maxBlockTime=float(values[4]),
-        )
-
-
-@dataclass
-class POWPricing:
-    id: int
-    timestamp: float
-    nodeId: int
-    difficulty: float
-    eventType: int
-
-    @classmethod
-    def from_values(cls, values):
-        return cls(
-            id=int(values[0]),
-            timestamp=float(values[1]),
-            nodeId=int(values[2]),
-            difficulty=float(values[3]),
-            eventType=int(values[4]),
-        )
+    df = db.execute_df("blocks", columns)
+    return df
 
 
-@dataclass
-class PPOBPricing:
-    id: int
-    timestamp: float
-    nodeId: int
-    currentlyAt: int
-    price: float
+def load_nodes(db: Database) -> pd.DataFrame:
+    columns = [
+        "id",
+        "powerFull",
+        "powerIdle",
+        "transactions",
+    ]
+    return db.execute_df("nodes", columns)
 
-    @classmethod
-    def from_values(cls, values):
-        return cls(
-            id=int(values[0]),
-            timestamp=float(values[1]),
-            nodeId=int(values[2]),
-            currentlyAt=int(values[3]),
-            price=float(values[4]),
-        )
+
+def load_pricing_proof_of_burn_burn_consensus(db: Database) -> pd.DataFrame:
+    columns = [
+        "id",
+        "timestamp",
+        "nodeId",
+        "currentlyAt",
+        "price",
+    ]
+    return db.execute_df("pricing_proof_of_burn_burn_consensus", columns)
+
+
+def load_pricing_proof_of_burn_burn_transaction(db: Database) -> pd.DataFrame:
+    columns = [
+        "id",
+        "nodeId",
+        "burnedAt",
+        "burnedFor",
+    ]
+    return db.execute_df("pricing_proof_of_burn_burn_transaction", columns)
+
+
+def load_proof_of_work_consensus(db: Database) -> pd.DataFrame:
+    columns = [
+        "id",
+        "timestamp",
+        "nodeId",
+        "difficulty",
+        "eventType",
+    ]
+    return db.execute_df("proof_of_work_consensus", columns)
+
+
+def load_razer_proof_of_burn_consensus(db: Database) -> pd.DataFrame:
+    columns = [
+        "id",
+        "timestamp",
+        "nodeId",
+        "chance",
+        "eventType",
+    ]
+    return db.execute_df("razer_proof_of_burn_consensus", columns)
+
+
+def load_slimcoin_proof_of_burn_consensus(db: Database) -> pd.DataFrame:
+    columns = [
+        "id",
+        "timestamp",
+        "nodeId",
+        "chance",
+        "eventType",
+    ]
+    return db.execute_df("slimcoin_proof_of_burn_consensus", columns)
