@@ -16,7 +16,8 @@ type Simulation struct {
 
 	Random *Rng
 
-	BlockCount int64
+	BlockCount       int64
+	TransactionCount int64
 
 	CurrentTime float64
 	ProgressBar *pb.ProgressBar
@@ -28,7 +29,7 @@ func NewSimulation(configuration_path string) *Simulation {
 	configuration := mustLoadConfiguration(configuration_path)
 	random := CreateRandom(configuration.Seed)
 
-	databasePath := fmt.Sprintf("result/%s_%d.sqlite", configuration.Name, int(time.Now().Unix()))
+	databasePath := fmt.Sprintf("result/%s (%s).sqlite", configuration.Name, time.Now().Format("2006-01-02 15:04:05"))
 	return &Simulation{
 		Configuration: configuration,
 		Nodes:         make([]*Node, 0),
@@ -36,7 +37,7 @@ func NewSimulation(configuration_path string) *Simulation {
 
 		Random: random,
 
-		BlockCount: 1,
+		BlockCount: 0,
 
 		CurrentTime: 0,
 		ProgressBar: pb.StartNew(int(configuration.SimulationTime)),
@@ -46,6 +47,7 @@ func NewSimulation(configuration_path string) *Simulation {
 
 func (s *Simulation) AdvanceTimeTo(time float64) float64 {
 	deltaTime := time - s.CurrentTime
+	s.TransactionCount += s.Random.Gaussian(float64(s.Configuration.AverageTransactionsPerSecond)*deltaTime, 0.8)
 	s.CurrentTime = time
 	s.ProgressBar.SetCurrent(int64(s.CurrentTime))
 	return deltaTime
@@ -80,6 +82,7 @@ func (s *Simulation) Simulate() {
 	logrus.Infof("=================")
 	logrus.Infof("Simulation seed: %d", s.Random.GetSeed())
 	logrus.Infof("Simulation database: %s", s.Database._path)
+	s.Database.SaveLabel(s.Configuration.Name)
 	s.InitializeNodes()
 
 	genesisBlock := &Block{

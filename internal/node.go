@@ -4,7 +4,8 @@ func NewNode(simulation *Simulation) *Node {
 	node := &Node{
 		Id:         int64(len(simulation.Nodes)),
 		Simulation: simulation,
-		Power:      simulation.Random.LogNormal(AveragePowerUsage_Node),
+		PowerFull:  simulation.Random.LogNormal(AveragePowerFullUsage_Node),
+		PowerIdle:  simulation.Random.LogNormal(AveragePowerIdleUsage_Node),
 	}
 
 	AddConsensus_PPoB(node)
@@ -33,7 +34,8 @@ type Node struct {
 	Event         *Event_BlockMined
 	PreviousBlock *Block
 
-	Power float64
+	PowerFull float64
+	PowerIdle float64
 
 	ProofOfWork Consensus
 	ProofOfBurn Consensus

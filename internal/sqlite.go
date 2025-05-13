@@ -27,6 +27,7 @@ func NewSQLite(path string) *SQLite {
 	_, _ = database.Exec("PRAGMA temp_store = MEMORY;")
 	_, _ = database.Exec("PRAGMA locking_mode = EXCLUSIVE;")
 
+	sqlite.PrepareLabelTable()
 	sqlite.PrepareBlocksTable()
 	sqlite.PrepareNodesTable()
 	sqlite.PrepareProofOfWorkConsensusTable()
@@ -40,6 +41,7 @@ func NewSQLite(path string) *SQLite {
 
 func (s *SQLite) Close() {
 
+	s._label.Flush()
 	s._blocks.Flush()
 	s._nodes.Flush()
 	s._proofOfWorkConsensus.Flush()
@@ -56,6 +58,7 @@ type SQLite struct {
 	_database *sql.DB
 	_path     string
 
+	_label                              *SQLiteTable[LabelTable]
 	_blocks                             *SQLiteTable[BlocksTable]
 	_nodes                              *SQLiteTable[NodesTable]
 	_proofOfWorkConsensus               *SQLiteTable[ProofOfWorkConsensusTable]

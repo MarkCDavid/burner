@@ -35,7 +35,7 @@ func (event *Event_BlockMined) Handle() {
 }
 
 func (s *Simulation) GetTransactionsToInclude(event *Event_BlockMined) int64 {
-	availableTransactions := s.GetCurrentTransactionCount() - event.MinedBy.Transactions
+	availableTransactions := s.TransactionCount - event.MinedBy.Transactions
 
 	if availableTransactions > s.Configuration.MaximumTransactionsPerBlock {
 		return s.Configuration.MaximumTransactionsPerBlock
@@ -104,10 +104,6 @@ func (e *Event_BlockMined) MiningDuration() float64 {
 
 func (e *Event_BlockMined) IntervalDuration() float64 {
 	return e.Block.FinishedAt - e.PreviousBlock.FinishedAt
-}
-
-func (e *Event_BlockMined) PowerUsed() float64 {
-	return e.MiningDuration() * e.MinedBy.Power
 }
 
 // === Interface ===

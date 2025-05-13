@@ -35,8 +35,8 @@ func (event *Event_BlockReceived) Handle() {
 
 func (event *Event_BlockReceived) Reorganize() {
 	if event.Block.Node != nil && event.ReceivedBy != event.Block.Node {
-		event.ReceivedBy.SynchronizeConsensus(event.Block.Node)
 		event.ReceivedBy.Transactions = event.Block.Node.Transactions
+		event.ReceivedBy.SynchronizeConsensus(event.Block.Node)
 
 		if event.ReceivedBy.Event != nil {
 			event.ReceivedBy.Event.Block.Abandoned = true
