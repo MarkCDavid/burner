@@ -96,6 +96,13 @@ func (simulation *Simulation) ScheduleBlockMinedEvent(
 	simulation.Events.Push(event)
 }
 
+func (e *Event_BlockMined) Abandon() {
+	e.Block.Abandoned = true
+	e.Block.FinishedAt = e.Simulation.CurrentTime
+	e.Simulation.Database.SaveBlock(e)
+	e.Simulation.Events.Remove(e)
+}
+
 // === Time ===
 
 func (e *Event_BlockMined) MiningDuration() float64 {

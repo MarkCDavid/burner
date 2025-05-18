@@ -23,6 +23,11 @@ func (event *Event_RandomReceived) Handle() {
 	}
 
 	block := event.ReceivedBy.BuildBlock(event.ReceivedBy.PreviousBlock.Depth+1, event.ReceivedBy.ProofOfBurn)
+
+	if event.ReceivedBy.Event != nil {
+		event.ReceivedBy.Event.Abandon()
+	}
+
 	event.ReceivedBy.Simulation.ScheduleBlockMinedEvent(event.ReceivedBy, block)
 }
 

@@ -19,11 +19,11 @@ def calculate_mining_time(df: pd.DataFrame):
     return df
 
 
-def calculate_production_time(df: pd.DataFrame) -> pd.DataFrame:
+def calculate_production_time(df: pd.DataFrame, label: str) -> pd.DataFrame:
     df = df.sort_values("startedAt").copy()
 
     def compute_time(row):
-        if row["blockType"] == 0:
+        if row["blockType"] == 0 or "SlimCoin" in label:
             return (row["finishedAt"] - row["startedAt"]).total_seconds()
         elif row["blockType"] == 1 and pd.notnull(row["previousFinishedAt"]):
             return (row["finishedAt"] - row["previousFinishedAt"]).total_seconds()
@@ -31,6 +31,19 @@ def calculate_production_time(df: pd.DataFrame) -> pd.DataFrame:
 
     df["productionTime"] = df.apply(compute_time, axis=1)
     return df
+
+
+def count_forks(blocks: pd.DataFrame) -> int:
+    one_month_seconds = 30 * 24 * 60 * 60
+
+    blocks = blocks[
+        (blocks["abandoned"] == 0) & (blocks["startedAt"] >= one_month_seconds)
+    ]
+
+    forks_per_depth = blocks.groupby("depth")["previousBlockId"].nunique()
+    total_forks = (forks_per_depth > 1).sum()
+
+    return total_forks
 
 
 def roll_window(df: pd.DataFrame, field: str, window: int = 1000):
@@ -77,7 +90,8 @@ def plot_production_times(
     blocks_longest = rebase_on(blocks_longest, "startedAt", start_time)
     blocks_longest = rebase_on(blocks_longest, "finishedAt", start_time)
     blocks_longest = rebase_on(blocks_longest, "previousFinishedAt", start_time)
-    blocks_longest = calculate_production_time(blocks_longest)
+    blocks_longest = blocks_longest[blocks_longest["startedAt"] < end_time]
+    blocks_longest = calculate_production_time(blocks_longest, label)
     blocks_0 = blocks_longest[blocks_longest["blockType"] == 0]
     blocks_1 = blocks_longest[blocks_longest["blockType"] == 1]
 
@@ -114,14 +128,14 @@ def plot_production_times_typeless(
     blocks_all = rebase_on(blocks_all, "startedAt", start_time)
     blocks_all = rebase_on(blocks_all, "finishedAt", start_time)
     blocks_all = rebase_on(blocks_all, "previousFinishedAt", start_time)
-    blocks_all = calculate_production_time(blocks_all)
+    blocks_all = calculate_production_time(blocks_all, label)
     blocks_all_rolling = roll_window(blocks_all, "productionTime", window)
 
     blocks_longest = trace_longest_chain(blocks)
     blocks_longest = rebase_on(blocks_longest, "startedAt", start_time)
     blocks_longest = rebase_on(blocks_longest, "finishedAt", start_time)
     blocks_longest = rebase_on(blocks_longest, "previousFinishedAt", start_time)
-    blocks_longest = calculate_production_time(blocks_longest)
+    blocks_longest = calculate_production_time(blocks_longest, label)
     blocks_longest_rolling = roll_window(blocks_longest, "productionTime", window)
 
     plt.figure(figsize=(12, 6))
@@ -296,13 +310,14 @@ def plot_power_per_block_comparison(
     plot_monthly_lines(start_time, end_time)
 
     for label, blocks in blocks.items():
-        blocks_full = blocks[blocks["abandoned"] == 1].copy()
+        # blocks_full = blocks.copy()
+        blocks_full = blocks[blocks["abandoned"] == 0].copy()
         blocks_full = blocks_full.set_index("id")
         # blocks_full = trace_longest_chain(blocks)
         blocks_full = rebase_on(blocks_full, "startedAt", start_time)
         blocks_full = rebase_on(blocks_full, "finishedAt", start_time)
         blocks_full = rebase_on(blocks_full, "previousFinishedAt", start_time)
-        blocks_full = calculate_production_time(blocks_full)
+        blocks_full = calculate_production_time(blocks_full, label)
 
         nodes_longest = nodes[label]
 
@@ -329,7 +344,8 @@ def plot_power_per_block_comparison(
             label=label,
         )
 
-    plt.ylim(bottom=0)
+    # plt.ylim(bottom=0)
+    plt.ylim(0, 1.75e12)
     plt.legend()
     plt.tight_layout()
     plt.show()
@@ -343,20 +359,20 @@ def plot_power_per_transaction_comparison(
     end_time = pd.Timestamp("2025-01-01")
 
     plt.figure(figsize=(12, 6))
-    plt.title(f"Cummulative Power Usage")
+    plt.title(f"Cumulative Power Usage")
 
     plt.xlabel("Simulation Time")
     plt.ylabel("Power")
 
     plot_monthly_lines(start_time, end_time)
 
-    for label, blocks in blocks.items():
-        blocks_full = blocks.copy()
+    for label, blocksDf in blocks.items():
+        blocks_full = blocksDf.copy()
         blocks_full = blocks_full.set_index("id")
         blocks_full = rebase_on(blocks_full, "startedAt", start_time)
         blocks_full = rebase_on(blocks_full, "finishedAt", start_time)
         blocks_full = rebase_on(blocks_full, "previousFinishedAt", start_time)
-        blocks_full = calculate_production_time(blocks_full)
+        blocks_full = calculate_production_time(blocks_full, label)
 
         nodes_longest = nodes[label]
 
