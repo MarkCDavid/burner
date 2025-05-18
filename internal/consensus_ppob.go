@@ -31,7 +31,7 @@ func AddConsensus_PPoB(node *Node) {
 		EpochTimeElapsed: 0,
 		EpochTimeAverage: configuration.AverageBlockFrequencyInSeconds,
 
-		Difficulty: float64(node.Simulation.Configuration.NodeCount) * (configuration.AverageBlockFrequencyInSeconds / 100.0),
+		Difficulty: float64(node.Simulation.Configuration.NodeCount) * (configuration.AverageBlockFrequencyInSeconds),
 
 		SettledPeriod: configuration.SettledPeriod,
 		WorkingPeriod: configuration.WorkingPeriod,
@@ -63,6 +63,8 @@ type Consensus_PPoB struct {
 
 	EpochTimeElapsed float64
 	EpochTimeAverage float64
+
+	NonProofOfBurnMined int64
 
 	Price      float64
 	BurnBudget float64
@@ -146,16 +148,33 @@ func (c *Consensus_PPoB) Synchronize(consensus Consensus) {
 
 func (c *Consensus_PPoB) Adjust(event Event) {
 	c.BurnTransactions = Filter(c.BurnTransactions, func(t BurnTransaction) bool {
-		return c.Delta(t) < c.WorkingPeriod
+		return c.Delta(t) < c.WorkingPeriod-c.Node.Simulation.Random.int(0, c.WorkingPeriod/2)
 	})
 
 	blockMinedEvent, ok := event.(*Event_BlockMined)
 	if ok {
 
 		if blockMinedEvent.Block.Consensus.GetType() != ProofOfBurn {
+			if blockMinedEvent.Block.Depth < 20000 {
+				return
+			}
+
+			c.NonProofOfBurnMined++
+
+			if c.NonProofOfBurnMined > c.EpochLength {
+				if c.EpochIndex == 0 {
+					c.EpochIndex = 1
+					c.EpochTimeElapsed = 4 * c.EpochTimeAverage
+				}
+				c.AdjustPrice(blockMinedEvent)
+
+				c.EpochIndex = 0
+				c.EpochTimeElapsed = 0
+			}
+
 			return
 		}
-
+		c.NonProofOfBurnMined = 0
 		c.EpochIndex++
 		c.EpochTimeElapsed += blockMinedEvent.IntervalDuration()
 
@@ -187,7 +206,7 @@ func (c *Consensus_PPoB) AdjustPrice(blockMinedEvent *Event_BlockMined) {
 	}
 
 	c.Price *= deviation
-	// c.Price = ClampPositiveFloat64(c.Price)
+	c.Price = ClampPositiveFloat64(c.Price)
 	c.Node.Simulation.Database.SavePricingProofOfBurnConsensus(c, Adjust)
 }
 
@@ -213,7 +232,7 @@ func (c *Consensus_PPoB) Burn(depth int64) {
 	if newTotal > c.BurnBudget {
 		overBudgetRatio := (newTotal - c.BurnBudget) / c.BurnBudget
 
-		pricePenalty := math.Exp(-overBudgetRatio * 10)
+		pricePenalty := math.Exp(-overBudgetRatio * 100)
 
 		if !c.Node.Simulation.Random.Chance(pricePenalty) {
 			return

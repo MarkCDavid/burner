@@ -12,4 +12,4 @@ if __name__ == "__main__":
     with Database(sys.argv[1]) as database:
         label = load_label(database)
         blocks = load_blocks(database)
-        plot_production_times(blocks, label)
+        plot_production_times(blocks, label, window=4000)

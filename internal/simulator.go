@@ -17,6 +17,7 @@ type Simulation struct {
 	Random *Rng
 
 	BlockCount       int64
+	ForkCount        int64
 	TransactionCount int64
 
 	CurrentTime float64
@@ -38,6 +39,7 @@ func NewSimulation(configuration_path string) *Simulation {
 		Random: random,
 
 		BlockCount: 0,
+		ForkCount:  0,
 
 		CurrentTime: 0,
 		ProgressBar: pb.StartNew(int(configuration.SimulationTime)),

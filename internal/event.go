@@ -13,6 +13,7 @@ type Block struct {
 	Node *Node
 
 	Depth        int64
+	Fork         int64
 	Transactions int64
 
 	StartedAt  float64

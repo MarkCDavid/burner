@@ -39,21 +39,20 @@ func (event *Event_BlockReceived) Reorganize() {
 		event.ReceivedBy.SynchronizeConsensus(event.Block.Node)
 
 		if event.ReceivedBy.Event != nil {
-			event.ReceivedBy.Event.Block.Abandoned = true
-			event.ReceivedBy.Event.Block.FinishedAt = event.ReceivedBy.Simulation.CurrentTime
-			event.Simulation.Database.SaveBlock(event.ReceivedBy.Event)
-			event.Simulation.Events.Remove(event.ReceivedBy.Event)
+			event.ReceivedBy.Event.Abandon()
 		}
 	}
 
 	event.ReceivedBy.PreviousBlock = event.Block
 
-	if event.ReceivedBy.ProofOfWork != nil {
-		event.ReceivedBy.ProofOfWork.Adjust(event)
-	}
+	if event.Block.Node != nil && event.ReceivedBy == event.Block.Node {
+		if event.ReceivedBy.ProofOfWork != nil {
+			event.ReceivedBy.ProofOfWork.Adjust(event)
+		}
 
-	if event.ReceivedBy.ProofOfBurn != nil {
-		event.ReceivedBy.ProofOfBurn.Adjust(event)
+		if event.ReceivedBy.ProofOfBurn != nil {
+			event.ReceivedBy.ProofOfBurn.Adjust(event)
+		}
 	}
 
 	block := event.ReceivedBy.ProduceBlock(event)
