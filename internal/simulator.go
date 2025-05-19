@@ -1,119 +1,123 @@
 package internal
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+
+	"github.com/cheggaaa/pb/v3"
+	"github.com/sirupsen/logrus"
+)
 
 type Simulation struct {
 	Configuration Configuration
-	Nodes         []Node
-	Blocks        []Block
-	Queue         EventQueue
-	Random        *Rng
-	CurrentTime   float64
+
+	Nodes  []*Node
+	Events EventQueue
+
+	Random *Rng
+
+	BlockCount       int64
+	ForkCount        int64
+	TransactionCount int64
+
+	CurrentTime float64
+	ProgressBar *pb.ProgressBar
+
+	Database *SQLite
 }
 
-var simulation Simulation
+func NewSimulation(configuration_path string) *Simulation {
+	configuration := mustLoadConfiguration(configuration_path)
+	random := CreateRandom(configuration.Seed)
 
-func Simulate(configuration_path string, seed *int64) error {
-	configuration, err := LoadConfiguration(configuration_path)
-	if err != nil {
-		return err
-	}
-
-	random := CreateRandom(seed)
-	nodes := make([]Node, configuration.NodeCount)
-	difficulty := 0.0
-	for i := 0; i < len(nodes); i++ {
-		nodes[i].NodePower = 50 + 50*random.float()
-		difficulty += nodes[i].NodePower
-	}
-
-	simulation = Simulation{
+	databasePath := fmt.Sprintf("result/%s (%s).sqlite", configuration.Name, time.Now().Format("2006-01-02 15:04:05"))
+	return &Simulation{
 		Configuration: configuration,
-		Nodes:         nodes,
-		Blocks: []Block{
-			{
-				Node:                  -1,
-				PreviousBlock:         -1,
-				Depth:                 0,
-				ProofOfBurnDifficulty: difficulty,
-			},
-		},
-		Queue:       CreateEventQueue(),
-		Random:      random,
+		Nodes:         make([]*Node, 0),
+		Events:        CreateEventQueue(),
+
+		Random: random,
+
+		BlockCount: 0,
+		ForkCount:  0,
+
 		CurrentTime: 0,
+		ProgressBar: pb.StartNew(int(configuration.SimulationTime)),
+		Database:    NewSQLite(databasePath),
+	}
+}
+
+func (s *Simulation) AdvanceTimeTo(time float64) float64 {
+	deltaTime := time - s.CurrentTime
+	s.TransactionCount += s.Random.Gaussian(float64(s.Configuration.AverageTransactionsPerSecond)*deltaTime, 0.8)
+	s.CurrentTime = time
+	s.ProgressBar.SetCurrent(int64(s.CurrentTime))
+	return deltaTime
+}
+
+func (s *Simulation) InitializeNodes() {
+	for nodeIndex := int64(0); nodeIndex < s.Configuration.NodeCount; nodeIndex++ {
+		node := NewNode(s)
+		s.Nodes = append(s.Nodes, node)
 	}
 
-	for nodeId := 0; nodeId < configuration.NodeCount; nodeId += 1 {
-		ScheduleBlockMinedEvent(nodeId, 0)
+	for _, node := range s.Nodes {
+		if node.ProofOfWork != nil {
+			node.ProofOfWork.Initialize()
+		}
+
+		if node.ProofOfBurn != nil {
+			node.ProofOfBurn.Initialize()
+		}
+
+		s.Database.SaveNode(node)
 	}
 
-	truAverage := 0
-	average := simulation.Configuration.NodeCount * simulation.Configuration.NodeCount
+}
 
-	fmt.Printf("running with %d nodes.\n", simulation.Configuration.NodeCount)
-	fmt.Printf("expecting to average %d events, with maximum around %d\n", average, 2*average)
-	min := average
-	max := average
-	processedEvents := 0
-	for simulation.Queue.Len() > 0 {
+func (s *Simulation) GetCurrentTransactionCount() int64 {
+	return int64(s.CurrentTime) * s.Configuration.AverageTransactionsPerSecond
+}
 
-		truAverage += simulation.Queue.Len()
-		if processedEvents >= 50000 {
-			if simulation.Queue.Len() > max {
-				max = simulation.Queue.Len()
-			}
+func (s *Simulation) Simulate() {
 
-			if simulation.Queue.Len() < min {
-				min = simulation.Queue.Len()
-			}
-		}
-		processedEvents += 1
-		event := simulation.Queue.Pop()
+	logrus.Infof("=================")
+	logrus.Infof("Simulation seed: %d", s.Random.GetSeed())
+	logrus.Infof("Simulation database: %s", s.Database._path)
+	s.Database.SaveLabel(s.Configuration.Name)
+	s.InitializeNodes()
 
-		simulation.CurrentTime = event.DispatchAt
+	genesisBlock := &Block{
+		Id:        0,
+		Node:      nil,
+		Depth:     0,
+		Consensus: &Consensus_Genesis{},
+	}
+	for _, node := range s.Nodes {
+		(&Event_BlockReceived{
+			Simulation:    s,
+			ReceivedBy:    node,
+			Block:         genesisBlock,
+			PreviousBlock: nil,
+		}).Handle()
+	}
 
-		switch event.Type {
-		case BlockMinedEvent:
-			// fmt.Printf("%d (%f): Mined | By: %p | Previous: %p\n", processedEvents, event.DispatchAt, event.Node, event.Block)
-			HandleBlockMinedEvent(event)
-		case BlockReceivedEvent:
-			// fmt.Printf("%d (%f): Received | By: %p | Block: %p\n", processedEvents, event.DispatchAt, event.Node, event.Block)
-			HandleBlockReceivedEvent(event)
-		default:
-			panic("Unknown event")
-		}
+	if s.Configuration.PricingProofOfBurn.Enabled {
+		s.ScheduleEmitRandomEvent(0, 60)
+	}
 
-		if processedEvents%10000 == 0 && len(simulation.Nodes) < 20 {
-			fmt.Printf("adding new node\n")
-			simulation.Nodes = append(simulation.Nodes, Node{
-				NodePower: 50 + 50*random.float(),
-			})
-
-			for i := len(simulation.Blocks) - 1; i >= 0; i-- {
-				if simulation.Blocks[i].Mined {
-					ScheduleBlockMinedEvent(len(nodes)-1, i)
-					break
-				}
-			}
-
-		}
-
-		if simulation.CurrentTime > simulation.Configuration.SimulationTime {
+	for iteration := 0; s.CurrentTime < s.Configuration.SimulationTime; iteration++ {
+		if s.Events.Len() == 0 {
+			logrus.Error("blockchain stuck - no events available")
 			break
 		}
+		event := s.Events.Pop()
+		s.AdvanceTimeTo(event.EventTime())
+		event.Handle()
 	}
-	fmt.Printf("total events processed: %d\n", processedEvents)
-	// fmt.Printf("total capacity of blocks is: %d MB\n", (len(simulation.Blocks)*int(BlockSize))/(1024*1024))
-	// fmt.Printf("total capacity of events is: %d KB\n", (2*max*int(EventSize))/(1024))
-	// fmt.Printf("expecting on average %d events\n", average)
-	fmt.Printf("actually on average %f events, min: %d, max: %d\n", float64(truAverage)/float64(processedEvents), min, max)
-	// fmt.Printf("random shit, go: minux %f, dividus1: %f, dividus2: %f\n", float64(truAverage)/float64(processedEvents)-float64(average)-float64(simulation.Configuration.NodeCount), float64(min)/float64(average), float64(max)/float64(average))
-	// fmt.Println()
-	// fmt.Println()
-	// fmt.Println()
 
-	CalculateStatistics(simulation.Blocks)
-	ExportBlocksToDotGraph(simulation.Blocks, false, "chain.dot")
+	s.ProgressBar.Finish()
+	s.Database.Close()
 
-	return nil
+	logrus.Infof("Simulation ran for: %f", s.CurrentTime)
 }

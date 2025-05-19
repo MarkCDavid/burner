@@ -1,23 +1,15 @@
-test:
-  go test --count=1 ./tests
+run CONFIGURATION:
+  CGO_ENABLED=1 go run . simulation {{ CONFIGURATION }}
 
-run RUNS="1":
-  go run ./cmd/burner --runs={{ RUNS }}
+clean:
+  mkdir -p ./result
+  mkdir -p ./result/old
+  mv ./result/*.sql* ./result/old || true
 
-run-seeded SEED RUNS="1":
-  go run ./cmd/burner --seed={{ SEED }} --runs={{ RUNS }}
+graph SQL:
+  python3 ./processing/main.py "{{ SQL }}"
 
-push MESSAGE:
-  git add .
-  git commit --allow-empty -m "{{ MESSAGE }}"
-  git push origin main
+all CONFIGURATION:
+  just run {{ CONFIGURATION }}
+  just graph ./result/*.sqlite
 
-chain:
-  just run
-  dot -Tsvg chain.dot -o chain.svg
-  open chain.svg
-
-chain-seeded SEED:
-  just run-seeded {{ SEED }}
-  dot -Tsvg chain.dot -o chain.svg
-  open chain.svg
