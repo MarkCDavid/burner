@@ -1,0 +1,26 @@
+---
+name: "SlimCoin - 100:1 Interval"
+
+node_count: 20
+simulation_time_in_seconds: 31622400
+
+average_network_latency_in_seconds: 6
+chain_reorganization_threshold: 6
+
+average_transactions_per_second: 6
+maximum_transaction_per_block: 3000
+
+proof_of_work:
+  enabled: true
+  epoch_length: 2016
+  average_block_frequency_in_seconds: 600
+
+slimcoin_proof_of_burn:
+  enabled: true
+  interval: 100
+
+razer_proof_of_burn:
+  enabled: false
+
+pricing_proof_of_burn:
+  enabled: false

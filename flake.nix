@@ -19,6 +19,10 @@
             go
             just
             graphviz
+            sqlitebrowser
+            python312Packages.duckdb
+            python312Packages.matplotlib
+            python312Packages.tqdm
           ];
         };
       });

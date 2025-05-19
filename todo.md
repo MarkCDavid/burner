@@ -4,35 +4,31 @@
 
   - Adjustable difficulty:
 
-    - Bitcoin: Discrete steps
-    - PoB: Continuous
+    - PoW: Discrete Steps every 2016 blocks
+    - PoB:
+      - Discrete Steps every N blocks
+      - Price Adjustment every M blocks
 
-  - Nodes joining/leaving the network
-  - Node capabilities
-  - Node efficiency
-  - PoB - attempt how often
-
-- Baseline
-
-  - Baseline Bitcoin simulator, simulates
+  - Node Power
+  - Node Efficiency
 
 - Simulations:
 
-  - Baseline:
+  - Baseline (done):
 
     - Proof of Work (periodic difficulty adjustment)
 
-  - Simple Integration:
+  - Simple Integration (done):
 
     - Proof of Work (periodic difficulty adjustment)
-    - Proof of Burn (per block difficulty adjustment)
+    - Proof of Burn (per block difficulty adjustment) (must be after PoW)
     - Expectation:
       - If PoB cannot produce a block, it continues to mine PoW
       - Transactions per unit time increase
       - Power per transaction decrease
       - Power per unit time unchanged
 
-  - Uncontrolled Burn:
+  - Uncontrolled Burn (done):
 
     - Proof of Work (periodic difficulty adjustment)
     - Proof of Burn (very low difficulty)
@@ -41,7 +37,7 @@
       - Very little transactions per block
       - Energy consumption similar to PoW
 
-  - Pure Burn:
+  - Pure Burn (done):
 
     - Proof of Burn (per block difficulty adjustment)
     - Expectation:
@@ -68,3 +64,5 @@
     - Expectation:
       - Same as Adjustable Integration, but because we do not have PoW in the
         same network, we can adjust out mine on decay time as we see fit.
+
+What is interesting:

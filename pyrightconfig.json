@@ -1,0 +1,9 @@
+{
+  "include": ["."],
+
+  "exclude": ["**/__pycache__"],
+  "typeCheckingMode": "off",
+
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux"
+}
