@@ -4,8 +4,8 @@ func NewNode(simulation *Simulation) *Node {
 	node := &Node{
 		Id:         int64(len(simulation.Nodes)),
 		Simulation: simulation,
-		PowerFull:  simulation.Random.LogNormal(AveragePowerFullUsage_Node),
-		PowerIdle:  simulation.Random.LogNormal(AveragePowerIdleUsage_Node),
+		PowerFull:  simulation.Random.LogNormal(simulation.Configuration.AveragePowerFullUsageInWatts),
+		PowerIdle:  simulation.Random.LogNormal(simulation.Configuration.AveragePowerIdleUsageInWatts),
 	}
 
 	AddConsensus_PPoB(node)

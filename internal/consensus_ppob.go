@@ -155,19 +155,15 @@ func (c *Consensus_PPoB) Adjust(event Event) {
 	if ok {
 
 		if blockMinedEvent.Block.Consensus.GetType() != ProofOfBurn {
-			if blockMinedEvent.Block.Depth < 20000 {
-				return
-			}
-
 			c.NonProofOfBurnMined++
 
+			// Participation drought: a full epoch of non-PoB blocks
+			// passed without one PoB block. The paper (section 3.5.3)
+			// halves the price to attract participants.
 			if c.NonProofOfBurnMined > c.EpochLength {
-				if c.EpochIndex == 0 {
-					c.EpochIndex = 1
-					c.EpochTimeElapsed = 4 * c.EpochTimeAverage
-				}
-				c.AdjustPrice(blockMinedEvent)
+				c.HalvePrice()
 
+				c.NonProofOfBurnMined = 0
 				c.EpochIndex = 0
 				c.EpochTimeElapsed = 0
 			}
@@ -192,6 +188,12 @@ func (c *Consensus_PPoB) Adjust(event Event) {
 		c.Burn(c.Node.PreviousBlock.Depth)
 		return
 	}
+}
+
+func (c *Consensus_PPoB) HalvePrice() {
+	c.Price *= 0.5
+	c.Price = ClampPositiveFloat64(c.Price)
+	c.Node.Simulation.Database.SavePricingProofOfBurnConsensus(c, Adjust)
 }
 
 func (c *Consensus_PPoB) AdjustPrice(blockMinedEvent *Event_BlockMined) {

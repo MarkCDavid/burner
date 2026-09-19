@@ -1,4 +1,11 @@
+import os
+import re
 from typing import Dict
+
+import matplotlib
+
+matplotlib.use("Agg")
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,6 +13,22 @@ from utility import trace_longest_chain, filter_abandoned
 from tqdm import tqdm
 
 tqdm.pandas()
+
+_FIGURE_DIR = os.environ.get("BURNER_FIG_DIR", "verification/figures")
+_figure_counter = 0
+
+
+def show():
+    """Save the current figure to _FIGURE_DIR instead of a window."""
+    global _figure_counter
+    os.makedirs(_FIGURE_DIR, exist_ok=True)
+    title = plt.gca().get_title() or "figure"
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", title).strip("_").lower()
+    _figure_counter += 1
+    path = os.path.join(_FIGURE_DIR, f"{_figure_counter:02d}_{slug}.png")
+    plt.savefig(path, dpi=150)
+    plt.close()
+    print(f"saved figure: {path}")
 
 
 def rebase_on(df: pd.DataFrame, field: str, on: pd.Timestamp):
@@ -113,7 +136,7 @@ def plot_production_times(
     plt.ylim(bottom=0)
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    show()
 
 
 def plot_production_times_typeless(
@@ -155,7 +178,7 @@ def plot_production_times_typeless(
 
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    show()
 
 
 def plot_compare_production_times_typeless(
@@ -186,7 +209,7 @@ def plot_compare_production_times_typeless(
     plt.ylim(bottom=0)
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    show()
 
 
 def plot_transactions_per_block(
@@ -221,7 +244,7 @@ def plot_transactions_per_block(
     plt.ylim(bottom=0)
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    show()
 
 
 def plot_power_per_block(
@@ -291,7 +314,7 @@ def plot_power_per_block(
     plt.ylim(bottom=0)
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    show()
 
 
 def plot_power_per_block_comparison(
@@ -348,7 +371,7 @@ def plot_power_per_block_comparison(
     plt.ylim(0, 1.75e12)
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    show()
 
 
 def plot_power_per_transaction_comparison(
@@ -412,7 +435,7 @@ def plot_power_per_transaction_comparison(
     plt.ylim(bottom=0)
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    show()
 
 
 def plot_rolling_avg_over_time(
@@ -446,4 +469,4 @@ def plot_rolling_avg_over_time(
 
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    show()

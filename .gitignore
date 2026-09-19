@@ -15,3 +15,9 @@ chain.dot
 chain.svg
 
 .direnv
+
+# Verification run data
+/runs/
+
+# Python cache
+__pycache__/

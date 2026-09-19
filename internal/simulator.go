@@ -26,11 +26,14 @@ type Simulation struct {
 	Database *SQLite
 }
 
-func NewSimulation(configuration_path string) *Simulation {
+func NewSimulation(configuration_path string, seedOverride int64) *Simulation {
 	configuration := mustLoadConfiguration(configuration_path)
+	if seedOverride != 0 {
+		configuration.Seed = seedOverride
+	}
 	random := CreateRandom(configuration.Seed)
 
-	databasePath := fmt.Sprintf("result/%s (%s).sqlite", configuration.Name, time.Now().Format("2006-01-02 15:04:05"))
+	databasePath := fmt.Sprintf("result/%s seed=%d (%s).sqlite", configuration.Name, random.GetSeed(), time.Now().Format("2006-01-02 15:04:05"))
 	return &Simulation{
 		Configuration: configuration,
 		Nodes:         make([]*Node, 0),

@@ -19,6 +19,9 @@ type Configuration struct {
 	AverageTransactionsPerSecond int64 `yaml:"average_transactions_per_second"`
 	MaximumTransactionsPerBlock  int64 `yaml:"maximum_transaction_per_block"`
 
+	AveragePowerFullUsageInWatts float64 `yaml:"average_power_full_usage_in_watts"`
+	AveragePowerIdleUsageInWatts float64 `yaml:"average_power_idle_usage_in_watts"`
+
 	ProofOfWork         Consensus_PoW_Configuration  `yaml:"proof_of_work"`
 	SlimcoinProofOfBurn Consensus_SPoB_Configuration `yaml:"slimcoin_proof_of_burn"`
 	RazerProofOfBurn    Consensus_RPoB_Configuration `yaml:"razer_proof_of_burn"`
@@ -37,6 +40,14 @@ func mustLoadConfiguration(configuarionPath string) Configuration {
 
 	if err != nil {
 		panic(err)
+	}
+
+	if configuration.AveragePowerFullUsageInWatts == 0 {
+		configuration.AveragePowerFullUsageInWatts = AveragePowerFullUsage_Node
+	}
+
+	if configuration.AveragePowerIdleUsageInWatts == 0 {
+		configuration.AveragePowerIdleUsageInWatts = AveragePowerIdleUsage_Node
 	}
 
 	return configuration

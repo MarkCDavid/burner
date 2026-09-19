@@ -1,6 +1,6 @@
 ---
 seed: 1001
-name: "SlimCoin - 3:1 Interval"
+name: "SlimCoin Only"
 
 node_count: 20
 simulation_time_in_seconds: 31622400
@@ -15,13 +15,11 @@ average_power_full_usage_in_watts: 3000
 average_power_idle_usage_in_watts: 200
 
 proof_of_work:
-  enabled: true
-  epoch_length: 2016
-  average_block_frequency_in_seconds: 600
+  enabled: false
 
 slimcoin_proof_of_burn:
   enabled: true
-  interval: 3
+  interval: 1
 
 razer_proof_of_burn:
   enabled: false
